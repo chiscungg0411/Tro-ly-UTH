@@ -75,7 +75,9 @@ async function getSchedule() {
     });
     console.log(`🌐 URL lịch học: ${page.url()}`);
 
+    // Chờ bảng lịch học tải đầy đủ
     await page.waitForSelector(".MuiTable-root", { timeout: 30000 });
+    await new Promise((resolve) => setTimeout(resolve, 2000)); // Chờ thêm 2 giây để đảm bảo dữ liệu tải hết
 
     const scheduleData = await page.evaluate(() => {
       const table = document.querySelector(".MuiTable-root");
@@ -86,6 +88,7 @@ async function getSchedule() {
         th.textContent.trim().replace(/\n/g, " - ")
       );
       const days = headers.slice(2); // Bỏ 2 cột đầu ("Ca học" và cột trống)
+      console.log("Days from thead:", days);
 
       // Khởi tạo lịch cho cả tuần từ headers
       const schedule = {};
@@ -93,23 +96,20 @@ async function getSchedule() {
 
       // Lấy dữ liệu từ <tbody>
       const rows = table.querySelectorAll("tbody tr");
-      let currentShift = "";
+      let rowIndex = 0;
 
       rows.forEach((row) => {
         const cells = row.querySelectorAll("td");
-        if (cells[0].getAttribute("rowspan")) {
-          currentShift = cells[0].textContent.trim();
-        } else {
-          const shiftDetail = cells[0].textContent.trim();
-          for (let i = 1; i < cells.length; i++) {
-            const day = days[i - 1];
+        if (cells.length > 1) { // Chỉ xử lý các hàng có dữ liệu thực tế
+          for (let i = 2; i < cells.length; i++) { // Bắt đầu từ cột thứ 3 (ứng với ngày)
+            const day = days[i - 2]; // Ánh xạ đúng ngày
             const cell = cells[i];
             const classBox = cell.querySelector(".MuiBox-root.css-415vdw");
 
             if (classBox) {
               const subject = classBox.querySelector(".css-eu5kgx")?.textContent.trim() || "Không rõ";
               const periodsRaw = classBox.querySelectorAll(".css-189xydx")[1]?.textContent.trim() || "Không rõ";
-              const periods = periodsRaw.replace("Tiết: ", ""); // Loại bỏ "Tiết: "
+              const periods = periodsRaw.replace("Tiết: ", "");
               const time = classBox.querySelectorAll(".css-189xydx")[2]?.textContent.trim() || "Không rõ";
               const startTime = time.split(" - ")[0] || "Không rõ";
               const room = classBox
@@ -126,6 +126,7 @@ async function getSchedule() {
             }
           }
         }
+        rowIndex++;
       });
 
       // Debug: In dữ liệu đã lấy
