@@ -23,7 +23,19 @@ bot.onText(/\/tuannay/, async (msg) => {
     const { schedule, week } = await getSchedule();
     let message = `📅 **Lịch học tuần này của bạn**\n------------------------------------\n`;
 
-    for (const [ngay, monHocs] of Object.entries(schedule)) {
+    // Đảm bảo hiển thị đầy đủ các ngày trong tuần
+    const allDays = [
+      "Thứ 2 - 07/04/2025",
+      "Thứ 3 - 08/04/2025",
+      "Thứ 4 - 09/04/2025",
+      "Thứ 5 - 10/04/2025",
+      "Thứ 6 - 11/04/2025",
+      "Thứ 7 - 12/04/2025",
+      "Chủ nhật - 13/04/2025",
+    ];
+
+    allDays.forEach((ngay, index) => {
+      const monHocs = schedule[ngay] || [];
       message += `📌 **${ngay}:**\n`;
       if (monHocs.length) {
         monHocs.forEach((m) => {
@@ -33,9 +45,13 @@ bot.onText(/\/tuannay/, async (msg) => {
                      `📍 **Phòng học:** ${m.room}\n\n`;
         });
       } else {
-        message += "❌ Không có lịch\n\n";
+        message += "❌ Không có lịch\n";
       }
-    }
+      // Thêm khoảng trắng giữa các ngày, trừ ngày cuối
+      if (index < allDays.length - 1) {
+        message += "\n";
+      }
+    });
 
     bot.sendMessage(chatId, message, { parse_mode: "Markdown" });
   } catch (error) {
