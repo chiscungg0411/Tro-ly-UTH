@@ -3,10 +3,11 @@ const StealthPlugin = require("puppeteer-extra-plugin-stealth");
 
 puppeteer.use(StealthPlugin());
 
-// Hàm làm sạch chuỗi, loại bỏ ký tự không hợp lệ
+// Hàm làm sạch chuỗi, giữ dấu tiếng Việt và dấu chấm
 function cleanText(text) {
+  // Giữ chữ, số, khoảng trắng, /, :, -, ., và các ký tự Unicode tiếng Việt
   return text
-    .replace(/[^\w\s\d\/:-]/g, "") // Chỉ giữ chữ, số, khoảng trắng, /, :, -
+    .replace(/[^\p{L}\p{N}\s\d\/:-.]/gu, "") // \p{L} cho ký tự chữ (bao gồm tiếng Việt), \p{N} cho số
     .trim();
 }
 
