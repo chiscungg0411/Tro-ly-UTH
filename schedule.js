@@ -14,6 +14,7 @@ async function launchBrowser() {
         "--disable-dev-shm-usage",
         "--disable-gpu",
         "--single-process",
+        "--no-zygote",
       ],
       timeout: 60000,
     });
@@ -25,7 +26,7 @@ async function launchBrowser() {
   }
 }
 
-async function login(browser, page, username, password, retries = 3) {
+async function login(page, username, password, retries = 3) {
   for (let attempt = 1; attempt <= retries; attempt++) {
     try {
       console.log(`🔑 Thử đăng nhập lần ${attempt}...`);
@@ -50,97 +51,84 @@ async function login(browser, page, username, password, retries = 3) {
         console.log("✅ Đăng nhập thành công.");
         return true;
       } else {
-        throw new Error("Đăng nhập thất bại, kiểm tra thông tin hoặc CAPTCHA.");
+        throw new Error("Đăng nhập thất bại, kiểm tra thông tin.");
       }
     } catch (error) {
       console.error(`❌ Lỗi đăng nhập lần ${attempt}:`, error.message);
       if (attempt === retries) throw new Error(`Đăng nhập thất bại sau ${retries} lần.`);
-      await page.close();
-      await browser.close();
-      browser = await launchBrowser();
-      page = await browser.newPage();
+      await new Promise((resolve) => setTimeout(resolve, 2000));
     }
   }
 }
 
 async function getSchedule() {
-  let browser = await launchBrowser();
-  let page = await browser.newPage();
-
+  let browser;
   try {
-    await login(browser, page, process.env.UT_USERNAME, process.env.UT_PASSWORD);
+    browser = await launchBrowser();
+    const page = await browser.newPage();
+
+    await login(page, process.env.UT_USERNAME, process.env.UT_PASSWORD);
+
     await page.goto("https://portal.ut.edu.vn/calendar", {
       waitUntil: "networkidle2",
       timeout: 60000,
     });
-    console.log(`🌐 URL lịch học: ${page.url()}`);
-
-    // Chờ bảng lịch học tải đầy đủ
     await page.waitForSelector(".MuiTable-root", { timeout: 30000 });
-    await new Promise((resolve) => setTimeout(resolve, 2000)); // Chờ thêm 2 giây để đảm bảo dữ liệu tải hết
+    console.log("✅ Đã tải trang lịch học.");
 
     const scheduleData = await page.evaluate(() => {
       const table = document.querySelector(".MuiTable-root");
-      if (!table) throw new Error("Không tìm thấy bảng lịch học!");
+      if (!table) return { error: "Không tìm thấy bảng lịch học." };
 
-      // Lấy tiêu đề ngày từ <thead>
       const headers = Array.from(table.querySelectorAll("thead th")).map((th) =>
         th.textContent.trim().replace(/\n/g, " - ")
       );
-      const days = headers.slice(2); // Bỏ 2 cột đầu ("Ca học" và cột trống)
-      console.log("Days from thead:", days);
-
-      // Khởi tạo lịch cho cả tuần từ headers
+      const days = headers.slice(1); // Bỏ cột "Ca học"
       const schedule = {};
+
       days.forEach((day) => (schedule[day] = []));
 
-      // Lấy dữ liệu từ <tbody>
       const rows = table.querySelectorAll("tbody tr");
-      let rowIndex = 0;
-
       rows.forEach((row) => {
         const cells = row.querySelectorAll("td");
-        if (cells.length > 1) { // Chỉ xử lý các hàng có dữ liệu thực tế
-          for (let i = 2; i < cells.length; i++) { // Bắt đầu từ cột thứ 3 (ứng với ngày)
-            const day = days[i - 2]; // Ánh xạ đúng ngày
-            const cell = cells[i];
-            const classBox = cell.querySelector(".MuiBox-root.css-415vdw");
+        const shift = cells[0]?.textContent.trim();
+        if (!shift || shift.includes("Sáng") || shift.includes("Chiều") || shift.includes("Tối")) return;
 
-            if (classBox) {
-              const subject = classBox.querySelector(".css-eu5kgx")?.textContent.trim() || "Không rõ";
-              const periodsRaw = classBox.querySelectorAll(".css-189xydx")[1]?.textContent.trim() || "Không rõ";
-              const periods = periodsRaw.replace("Tiết: ", "");
-              const time = classBox.querySelectorAll(".css-189xydx")[2]?.textContent.trim() || "Không rõ";
-              const startTime = time.split(" - ")[0] || "Không rõ";
-              const room = classBox
-                .querySelectorAll(".css-189xydx")[3]
-                ?.textContent.replace("Phòng: ", "")
-                .trim() || "Không rõ";
+        for (let i = 1; i < cells.length; i++) {
+          const day = days[i - 1];
+          const cell = cells[i];
+          const classBox = cell.querySelector(".MuiBox-root.css-415vdw");
 
-              schedule[day].push({
-                subject,
-                periods,
-                startTime,
-                room,
-              });
-            }
+          if (classBox) {
+            const subject = classBox.querySelector(".css-eu5kgx")?.textContent.trim() || "Không rõ";
+            const details = Array.from(classBox.querySelectorAll(".css-189xydx")).map((p) => p.textContent.trim());
+            const periods = details[1]?.replace("Tiết: ", "") || "Không rõ";
+            const time = details[2] || "Không rõ";
+            const startTime = time.split(" - ")[0] || "Không rõ";
+            const room = details[3]?.replace("Phòng: ", "") || "Không rõ";
+
+            schedule[day].push({
+              shift,
+              subject,
+              periods,
+              startTime,
+              room,
+            });
           }
         }
-        rowIndex++;
       });
 
-      // Debug: In dữ liệu đã lấy
-      console.log("Dữ liệu lịch học:", JSON.stringify(schedule, null, 2));
       return { schedule, week: days[0].split(" - ")[1] || "hiện tại" };
     });
 
+    if (scheduleData.error) throw new Error(scheduleData.error);
     console.log("✅ Đã lấy lịch học.");
     return scheduleData;
   } catch (error) {
     console.error("❌ Lỗi trong getSchedule:", error.message);
     throw error;
   } finally {
-    await browser.close();
+    if (browser) await browser.close();
   }
 }
 
