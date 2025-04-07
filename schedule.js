@@ -83,7 +83,7 @@ async function getSchedule() {
     await page.waitForSelector(".MuiTable-root", { timeout: 30000 });
     console.log("✅ Đã tải trang lịch học.");
 
-    const scheduleData = await page.evaluate(() => {
+    const rawScheduleData = await page.evaluate(() => {
       const table = document.querySelector(".MuiTable-root");
       if (!table) return { error: "Không tìm thấy bảng lịch học." };
 
@@ -115,11 +115,11 @@ async function getSchedule() {
             const room = details[3]?.replace("Phòng: ", "") || "Không rõ";
 
             schedule[day].push({
-              shift: cleanText(shift),
-              subject: cleanText(subject),
-              periods: cleanText(periods),
-              startTime: cleanText(startTime),
-              room: cleanText(room),
+              shift,
+              subject,
+              periods,
+              startTime,
+              room,
             });
           }
         }
@@ -128,8 +128,24 @@ async function getSchedule() {
       return { schedule, week: days[0].split(" - ")[1] || "hiện tại" };
     });
 
-    if (scheduleData.error) throw new Error(scheduleData.error);
-    console.log("✅ Đã lấy lịch học.");
+    if (rawScheduleData.error) throw new Error(rawScheduleData.error);
+
+    // Làm sạch dữ liệu sau khi lấy từ trang web
+    const scheduleData = {
+      schedule: {},
+      week: cleanText(rawScheduleData.week),
+    };
+    for (const day in rawScheduleData.schedule) {
+      scheduleData.schedule[day] = rawScheduleData.schedule[day].map((classInfo) => ({
+        shift: cleanText(classInfo.shift),
+        subject: cleanText(classInfo.subject),
+        periods: cleanText(classInfo.periods),
+        startTime: cleanText(classInfo.startTime),
+        room: cleanText(classInfo.room),
+      }));
+    }
+
+    console.log("✅ Đã lấy và làm sạch lịch học.");
     return scheduleData;
   } catch (error) {
     console.error("❌ Lỗi trong getSchedule:", error.message);
