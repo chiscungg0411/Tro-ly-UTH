@@ -21,18 +21,26 @@ bot.onText(/\/lichhoc/, async (msg) => {
 
   try {
     const { schedule, week } = await getSchedule();
-    let reply = `📅 **Lịch học tuần: ${week}**\n`;
+    let reply = `📅 **Lịch học tuần từ ngày ${week}**\n`;
+    reply += "Xem chi tiết tại: [https://portal.ut.edu.vn/calendar](https://portal.ut.edu.vn/calendar)\n\n";
+
     if (Object.keys(schedule).length) {
       for (const [day, classes] of Object.entries(schedule)) {
-        reply += `\n**${day}**:\n`;
-        classes.forEach((item, index) => {
-          reply += `${index + 1}. ${item.subject} - ${item.time} - Phòng: ${item.room}\n`;
-        });
+        if (classes.length > 0) {
+          reply += `**${day}**:\n`;
+          classes.forEach((item, index) => {
+            reply += `${index + 1}. ${item.shift}: ${item.subject}\n   - Giờ: ${item.time}\n   - Phòng: ${item.room}\n`;
+          });
+          reply += "\n";
+        }
+      }
+      if (reply === `📅 **Lịch học tuần từ ngày ${week}**\nXem chi tiết tại: [https://portal.ut.edu.vn/calendar](https://portal.ut.edu.vn/calendar)\n\n`) {
+        reply += "❌ Không có lịch học trong tuần này.";
       }
     } else {
       reply += "❌ Không có lịch học.";
     }
-    bot.sendMessage(chatId, reply);
+    bot.sendMessage(chatId, reply, { parse_mode: "Markdown" });
   } catch (error) {
     bot.sendMessage(chatId, `❌ Lỗi: ${error.message}`);
   }
