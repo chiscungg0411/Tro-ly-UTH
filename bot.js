@@ -14,33 +14,30 @@ bot.onText(/\/start/, (msg) => {
   bot.sendMessage(chatId, "Xin chào! Mình là trợ lý UTH.\n- /tuannay: Xem lịch học tuần này");
 });
 
-// Lệnh /tuannay (dùng logic của /lichhoc cũ với lời văn mới)
+// Lệnh /tuannay
 bot.onText(/\/tuannay/, async (msg) => {
   const chatId = msg.chat.id;
   bot.sendMessage(chatId, "📅 Đang lấy lịch học tuần này, vui lòng chờ trong giây lát ⌛...");
 
   try {
     const { schedule, week } = await getSchedule();
-    let reply = `📅 **Lịch học tuần từ ngày ${week}**\n`;
-    reply += "Xem chi tiết tại: [https://portal.ut.edu.vn/calendar](https://portal.ut.edu.vn/calendar)\n\n";
+    let message = `📅 **Lịch học tuần này của bạn**\n------------------------------------\n`;
 
-    if (Object.keys(schedule).length) {
-      for (const [day, classes] of Object.entries(schedule)) {
-        if (classes.length > 0) {
-          reply += `**${day}**:\n`;
-          classes.forEach((item, index) => {
-            reply += `${index + 1}. ${item.shift}: ${item.subject}\n   - Giờ: ${item.time}\n   - Phòng: ${item.room}\n`;
-          });
-          reply += "\n";
-        }
+    for (const [ngay, monHocs] of Object.entries(schedule)) {
+      message += `📌 **${ngay}:**\n`;
+      if (monHocs.length) {
+        monHocs.forEach((m) => {
+          message += `📖 **Môn học:** ${m.subject}\n` +
+                     `📅 **Tiết:** ${m.periods}\n` +
+                     `🕛 **Giờ bắt đầu:** ${m.startTime}\n` +
+                     `📍 **Phòng học:** ${m.room}\n\n`;
+        });
+      } else {
+        message += "❌ Không có lịch\n\n";
       }
-      if (reply === `📅 **Lịch học tuần từ ngày ${week}**\nXem chi tiết tại: [https://portal.ut.edu.vn/calendar](https://portal.ut.edu.vn/calendar)\n\n`) {
-        reply += "❌ Không có lịch học trong tuần này.";
-      }
-    } else {
-      reply += "❌ Không có lịch học.";
     }
-    bot.sendMessage(chatId, reply, { parse_mode: "Markdown" });
+
+    bot.sendMessage(chatId, message, { parse_mode: "Markdown" });
   } catch (error) {
     bot.sendMessage(chatId, `❌ Lỗi lấy lịch học: ${error.message}`);
   }

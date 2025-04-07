@@ -87,8 +87,16 @@ async function getSchedule() {
       );
       const days = headers.slice(2); // Bỏ 2 cột đầu
 
-      const schedule = {};
-      days.forEach((day) => (schedule[day] = []));
+      // Khởi tạo lịch cho cả tuần
+      const schedule = {
+        "Thứ 2 - 07/04/2025": [],
+        "Thứ 3 - 08/04/2025": [],
+        "Thứ 4 - 09/04/2025": [],
+        "Thứ 5 - 10/04/2025": [],
+        "Thứ 6 - 11/04/2025": [],
+        "Thứ 7 - 12/04/2025": [],
+        "Chủ nhật - 13/04/2025": [],
+      };
 
       // Lấy dữ liệu từ <tbody>
       const rows = table.querySelectorAll("tbody tr");
@@ -107,18 +115,25 @@ async function getSchedule() {
 
             if (classBox) {
               const subject = classBox.querySelector(".css-eu5kgx")?.textContent.trim() || "Không rõ";
+              const periodsRaw = classBox.querySelectorAll(".css-189xydx")[1]?.textContent.trim() || "Không rõ";
+              const periods = periodsRaw.replace("Tiết: ", ""); // Loại bỏ "Tiết: "
               const time = classBox.querySelectorAll(".css-189xydx")[2]?.textContent.trim() || "Không rõ";
+              const startTime = time.split(" - ")[0] || "Không rõ";
               const room = classBox
                 .querySelectorAll(".css-189xydx")[3]
                 ?.textContent.replace("Phòng: ", "")
                 .trim() || "Không rõ";
-              // Thuộc tính cũ của /lichhoc
-              schedule[day].push({
-                shift: `${currentShift} - ${shiftDetail}`,
-                subject,
-                time,
-                room,
-              });
+
+              // Ánh xạ ngày từ headers sang schedule
+              const matchedDay = Object.keys(schedule).find((d) => d.includes(day.split(" - ")[1]));
+              if (matchedDay) {
+                schedule[matchedDay].push({
+                  subject,
+                  periods,
+                  startTime,
+                  room,
+                });
+              }
             }
           }
         }
