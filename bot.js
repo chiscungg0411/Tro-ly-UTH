@@ -20,10 +20,10 @@ bot.onText(/\/tuannay/, async (msg) => {
   bot.sendMessage(chatId, "📅 Đang lấy lịch học tuần này, vui lòng chờ trong giây lát ⌛...");
 
   try {
-    const { schedule, week } = await getSchedule();
+    const { schedule } = await getSchedule();
     let message = `📅 **Lịch học tuần này của bạn**\n------------------------------------\n`;
 
-    // Đảm bảo hiển thị đầy đủ các ngày trong tuần
+    // Danh sách đầy đủ các ngày trong tuần
     const allDays = [
       "Thứ 2 - 07/04/2025",
       "Thứ 3 - 08/04/2025",

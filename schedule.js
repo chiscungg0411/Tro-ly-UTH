@@ -98,11 +98,11 @@ async function getSchedule() {
       rows.forEach((row) => {
         const cells = row.querySelectorAll("td");
         if (cells[0].getAttribute("rowspan")) {
-          currentShift = cells[0].textContent.trim(); // "Sáng", "Chiều", "Tối"
+          currentShift = cells[0].textContent.trim();
         } else {
-          const shiftDetail = cells[0].textContent.trim(); // "Ca 1", "Ca 2", ...
+          const shiftDetail = cells[0].textContent.trim();
           for (let i = 1; i < cells.length; i++) {
-            const day = days[i - 1]; // Lấy ngày từ headers
+            const day = days[i - 1];
             const cell = cells[i];
             const classBox = cell.querySelector(".MuiBox-root.css-415vdw");
 
