@@ -30,8 +30,7 @@ bot.onText(/\/tuannay/, async (msg) => {
       message += `⭐ **${formattedDay}:**\n`;
       if (classes.length) {
         classes.forEach((c) => {
-          message += `----------`
-                     `⏰ **${c.shift}**\n` +
+          message += `⏰ **${c.shift}**\n` +
                      `📖 **Môn:** ${c.subject}\n` +
                      `📅 **Tiết:** ${c.periods}\n` +
                      `🕛 **Giờ bắt đầu:** ${c.startTime}\n` +
