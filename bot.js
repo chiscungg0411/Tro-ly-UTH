@@ -19,19 +19,19 @@ bot.onText(/\/tuannay/, async (msg) => {
 
   try {
     const { schedule, week } = await getSchedule();
-    let message = `📅 **Lịch học tuần ${week}**\n------------------------------------\n`;
+    let message = `📅 **Lịch học tuần này của bạn:**\n------------------------------------\n`;
 
     const days = Object.keys(schedule);
     days.forEach((day, index) => {
-      // Tách "Thứ" và ngày tháng, thêm dấu "-"
       const [thu, ngay] = day.split(/(\d{2}\/\d{2}\/\d{4})/);
       const formattedDay = `${thu} - ${ngay}`.trim();
       
       const classes = schedule[day];
-      message += `📌 **${formattedDay}:**\n`;
+      message += `⭐ **${formattedDay}:**\n`;
       if (classes.length) {
         classes.forEach((c) => {
-          message += `⏰ **${c.shift}**\n` +
+          message += `----------`
+                     `⏰ **${c.shift}**\n` +
                      `📖 **Môn:** ${c.subject}\n` +
                      `📅 **Tiết:** ${c.periods}\n` +
                      `🕛 **Giờ bắt đầu:** ${c.startTime}\n` +
