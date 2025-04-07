@@ -1,0 +1,19 @@
+{
+  "name": "tro-ly-uth",
+  "version": "1.0.0",
+  "description": "Telegram bot for UTH student portal",
+  "main": "bot.js",
+  "scripts": {
+    "start": "node bot.js"
+  },
+  "dependencies": {
+    "dotenv": "^16.4.7",
+    "express": "^4.17.1",
+    "node-telegram-bot-api": "^0.66.0",
+    "puppeteer-core": "^22.0.0",
+    "puppeteer-extra": "^3.3.6",
+    "puppeteer-extra-plugin-stealth": "^2.11.2"
+  },
+  "author": "chiscungg0411",
+  "license": "ISC"
+}
