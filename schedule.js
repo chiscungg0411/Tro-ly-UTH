@@ -3,6 +3,13 @@ const StealthPlugin = require("puppeteer-extra-plugin-stealth");
 
 puppeteer.use(StealthPlugin());
 
+// Hàm làm sạch chuỗi, loại bỏ ký tự không hợp lệ
+function cleanText(text) {
+  return text
+    .replace(/[^\w\s\d\/:-]/g, "") // Chỉ giữ chữ, số, khoảng trắng, /, :, -
+    .trim();
+}
+
 async function launchBrowser() {
   try {
     const browser = await puppeteer.launch({
@@ -108,11 +115,11 @@ async function getSchedule() {
             const room = details[3]?.replace("Phòng: ", "") || "Không rõ";
 
             schedule[day].push({
-              shift,
-              subject,
-              periods,
-              startTime,
-              room,
+              shift: cleanText(shift),
+              subject: cleanText(subject),
+              periods: cleanText(periods),
+              startTime: cleanText(startTime),
+              room: cleanText(room),
             });
           }
         }
