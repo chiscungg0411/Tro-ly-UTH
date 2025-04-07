@@ -98,11 +98,11 @@ async function getSchedule() {
       rows.forEach((row) => {
         const cells = row.querySelectorAll("td");
         if (cells[0].getAttribute("rowspan")) {
-          currentShift = cells[0].textContent.trim();
+          currentShift = cells[0].textContent.trim(); // "Sáng", "Chiều", "Tối"
         } else {
-          const shiftDetail = cells[0].textContent.trim();
+          const shiftDetail = cells[0].textContent.trim(); // "Ca 1", "Ca 2", ...
           for (let i = 1; i < cells.length; i++) {
-            const day = days[i - 1];
+            const day = days[i - 1]; // Lấy ngày từ headers
             const cell = cells[i];
             const classBox = cell.querySelector(".MuiBox-root.css-415vdw");
 
@@ -128,9 +128,9 @@ async function getSchedule() {
         }
       });
 
-      // Lấy tuần từ ngày đầu tiên
-      const week = days[0].split(" - ")[1] || "hiện tại";
-      return { schedule, week };
+      // Debug: In dữ liệu đã lấy
+      console.log("Dữ liệu lịch học:", JSON.stringify(schedule, null, 2));
+      return { schedule, week: days[0].split(" - ")[1] || "hiện tại" };
     });
 
     console.log("✅ Đã lấy lịch học.");
