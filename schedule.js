@@ -5,9 +5,9 @@ puppeteer.use(StealthPlugin());
 
 // Hàm làm sạch chuỗi, giữ dấu tiếng Việt và dấu chấm
 function cleanText(text) {
-  // Giữ chữ, số, khoảng trắng, /, :, -, ., và các ký tự Unicode tiếng Việt
+  // Giữ chữ (bao gồm tiếng Việt), số, khoảng trắng, /, :, -, .
   return text
-    .replace(/[^\p{L}\p{N}\s\d\/:-.]/gu, "") // \p{L} cho ký tự chữ (bao gồm tiếng Việt), \p{N} cho số
+    .replace(/[^\p{L}\p{N}\s/:-\.]/gu, "") // Sửa lại thứ tự, tránh range error
     .trim();
 }
 
