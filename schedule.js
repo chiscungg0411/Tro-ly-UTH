@@ -69,42 +69,64 @@ async function getSchedule() {
 
   try {
     await login(browser, page, process.env.UT_USERNAME, process.env.UT_PASSWORD);
-    await page.goto("https://portal.ut.edu.vn/dashboard/schedule", {
+    await page.goto("https://portal.ut.edu.vn/calendar", {
       waitUntil: "networkidle2",
       timeout: 60000,
     });
     console.log(`🌐 URL lịch học: ${page.url()}`);
 
-    await page.waitForSelector("table", { timeout: 30000 });
+    await page.waitForSelector(".MuiTable-root", { timeout: 30000 });
 
     const scheduleData = await page.evaluate(() => {
-      const table = document.querySelector("table");
+      const table = document.querySelector(".MuiTable-root");
       if (!table) throw new Error("Không tìm thấy bảng lịch học!");
 
+      // Lấy tiêu đề ngày từ <thead>
       const headers = Array.from(table.querySelectorAll("thead th")).map((th) =>
-        th.textContent.trim()
+        th.textContent.trim().replace(/\n/g, " - ")
       );
-      const days = headers.slice(1);
-      const schedule = {};
+      const days = headers.slice(2); // Bỏ 2 cột đầu
 
-      days.forEach((day, dayIndex) => {
-        schedule[day] = [];
-        const cells = table.querySelectorAll(`tbody td:nth-child(${dayIndex + 2})`);
-        cells.forEach((cell) => {
-          const text = cell.textContent.trim();
-          if (text) {
-            const [subject, time, room] = text.split(" - ");
-            schedule[day].push({
-              subject: subject || "Không rõ",
-              time: time || "Không rõ",
-              room: room || "Không rõ",
-            });
+      const schedule = {};
+      days.forEach((day) => (schedule[day] = []));
+
+      // Lấy dữ liệu từ <tbody>
+      const rows = table.querySelectorAll("tbody tr");
+      let currentShift = "";
+
+      rows.forEach((row) => {
+        const cells = row.querySelectorAll("td");
+        if (cells[0].getAttribute("rowspan")) {
+          currentShift = cells[0].textContent.trim();
+        } else {
+          const shiftDetail = cells[0].textContent.trim();
+          for (let i = 1; i < cells.length; i++) {
+            const day = days[i - 1];
+            const cell = cells[i];
+            const classBox = cell.querySelector(".MuiBox-root.css-415vdw");
+
+            if (classBox) {
+              const subject = classBox.querySelector(".css-eu5kgx")?.textContent.trim() || "Không rõ";
+              const time = classBox.querySelectorAll(".css-189xydx")[2]?.textContent.trim() || "Không rõ";
+              const room = classBox
+                .querySelectorAll(".css-189xydx")[3]
+                ?.textContent.replace("Phòng: ", "")
+                .trim() || "Không rõ";
+              // Thuộc tính cũ của /lichhoc
+              schedule[day].push({
+                shift: `${currentShift} - ${shiftDetail}`,
+                subject,
+                time,
+                room,
+              });
+            }
           }
-        });
+        }
       });
 
-      const weekInfo = document.querySelector(".week-info")?.textContent.trim() || "Tuần hiện tại";
-      return { schedule, week: weekInfo };
+      // Lấy tuần từ ngày đầu tiên
+      const week = days[0].split(" - ")[1] || "hiện tại";
+      return { schedule, week };
     });
 
     console.log("✅ Đã lấy lịch học.");

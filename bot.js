@@ -11,34 +11,30 @@ app.use(express.json());
 // Lệnh /start
 bot.onText(/\/start/, (msg) => {
   const chatId = msg.chat.id;
-  bot.sendMessage(
-    chatId, "👋 Xin chào! Mình là Trợ lý UTH.\n" +
-            "📅 /tuannay - Lấy lịch học tuần này.\n");
+  bot.sendMessage(chatId, "Xin chào! Mình là trợ lý UTH.\n- /tuannay: Xem lịch học tuần này");
 });
 
-// Lệnh /lichhoc
-bot.onText(/\/lichhoc/, async (msg) => {
+// Lệnh /tuannay (dùng logic của /lichhoc cũ với lời văn mới)
+bot.onText(/\/tuannay/, async (msg) => {
   const chatId = msg.chat.id;
   bot.sendMessage(chatId, "📅 Đang lấy lịch học tuần này, vui lòng chờ trong giây lát ⌛...");
 
   try {
     const { schedule, week } = await getSchedule();
-    let reply = `📅 **Lịch học tuần này của bạn:**\n`;
-    reply += "ℹ️ Hãy truy cập [Portal UTH](https://portal.ut.edu.vn/dashboard) để biết thêm thông tin chi tiết.\n\n";
+    let reply = `📅 **Lịch học tuần từ ngày ${week}**\n`;
+    reply += "Xem chi tiết tại: [https://portal.ut.edu.vn/calendar](https://portal.ut.edu.vn/calendar)\n\n";
 
     if (Object.keys(schedule).length) {
       for (const [day, classes] of Object.entries(schedule)) {
         if (classes.length > 0) {
           reply += `**${day}**:\n`;
           classes.forEach((item, index) => {
-            reply += `${index + 1}. ${item.shift}: ${item.subject}\n   
-            - 🕛 Giờ bắt đầu: ${item.time}\n   
-            - 📍 Phòng học: ${item.room}\n`;
+            reply += `${index + 1}. ${item.shift}: ${item.subject}\n   - Giờ: ${item.time}\n   - Phòng: ${item.room}\n`;
           });
           reply += "\n";
         }
       }
-      if (reply === `📅 **Lịch học tuần này của bạn:**\nℹ️ Hãy truy cập [Portal UTH](https://portal.ut.edu.vn/dashboard) để biết thêm thông tin chi tiết.\n\n`) {
+      if (reply === `📅 **Lịch học tuần từ ngày ${week}**\nXem chi tiết tại: [https://portal.ut.edu.vn/calendar](https://portal.ut.edu.vn/calendar)\n\n`) {
         reply += "❌ Không có lịch học trong tuần này.";
       }
     } else {
@@ -46,7 +42,7 @@ bot.onText(/\/lichhoc/, async (msg) => {
     }
     bot.sendMessage(chatId, reply, { parse_mode: "Markdown" });
   } catch (error) {
-    bot.sendMessage(chatId, `❌ Lỗi: ${error.message}`);
+    bot.sendMessage(chatId, `❌ Lỗi lấy lịch học: ${error.message}`);
   }
 });
 
