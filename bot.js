@@ -23,8 +23,12 @@ bot.onText(/\/tuannay/, async (msg) => {
 
     const days = Object.keys(schedule);
     days.forEach((day, index) => {
+      // Tách "Thứ" và ngày tháng, thêm dấu "-"
+      const [thu, ngay] = day.split(/(\d{2}\/\d{2}\/\d{4})/);
+      const formattedDay = `${thu} - ${ngay}`.trim();
+      
       const classes = schedule[day];
-      message += `📌 **${day}:**\n`;
+      message += `📌 **${formattedDay}:**\n`;
       if (classes.length) {
         classes.forEach((c) => {
           message += `⏰ **${c.shift}**\n` +
