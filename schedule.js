@@ -6,7 +6,7 @@ puppeteer.use(StealthPlugin());
 // Hàm làm sạch chuỗi, chỉ giữ các ký tự hợp lệ
 function cleanText(text) {
   // Tập hợp ký tự hợp lệ: chữ Latin, số, khoảng trắng, và các ký tự đặc biệt cần thiết
-  const validPattern = /[A-Za-zÀ-ỹ0-9\s/:-\.]/;
+  const validPattern = /[A-Za-zÀ-ỹ0-9\s/:.\-]/; // Tách riêng /, :, ., - để tránh lỗi range
   return Array.from(text)
     .filter(char => validPattern.test(char))
     .join("")
