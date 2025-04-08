@@ -3,6 +3,16 @@ const StealthPlugin = require("puppeteer-extra-plugin-stealth");
 
 puppeteer.use(StealthPlugin());
 
+// Hàm làm sạch chuỗi, chỉ giữ các ký tự hợp lệ
+function cleanText(text) {
+  // Danh sách ký tự hợp lệ: chữ (bao gồm tiếng Việt), số, khoảng trắng, và các ký tự đặc biệt cần thiết
+  const validChars = /^[A-Za-zÀ-ỹ0-9\s\/:-.]*$/;
+  return Array.from(text)
+    .filter(char => validChars.test(char))
+    .join("")
+    .trim();
+}
+
 async function launchBrowser() {
   try {
     const browser = await puppeteer.launch({
@@ -76,7 +86,7 @@ async function getSchedule() {
     await page.waitForSelector(".MuiTable-root", { timeout: 30000 });
     console.log("✅ Đã tải trang lịch học.");
 
-    const scheduleData = await page.evaluate(() => {
+    const rawScheduleData = await page.evaluate(() => {
       const table = document.querySelector(".MuiTable-root");
       if (!table) return { error: "Không tìm thấy bảng lịch học." };
 
@@ -121,9 +131,24 @@ async function getSchedule() {
       return { schedule, week: days[0].split(" - ")[1] || "hiện tại" };
     });
 
-    if (scheduleData.error) throw new Error(scheduleData.error);
+    if (rawScheduleData.error) throw new Error(rawScheduleData.error);
 
-    console.log("✅ Đã lấy lịch học.");
+    // Làm sạch dữ liệu sau khi lấy từ trang web
+    const scheduleData = {
+      schedule: {},
+      week: cleanText(rawScheduleData.week),
+    };
+    for (const day in rawScheduleData.schedule) {
+      scheduleData.schedule[day] = rawScheduleData.schedule[day].map((classInfo) => ({
+        shift: cleanText(classInfo.shift),
+        subject: cleanText(classInfo.subject),
+        periods: cleanText(classInfo.periods),
+        startTime: cleanText(classInfo.startTime),
+        room: cleanText(classInfo.room),
+      }));
+    }
+
+    console.log("✅ Đã lấy và làm sạch lịch học.");
     return scheduleData;
   } catch (error) {
     console.error("❌ Lỗi trong getSchedule:", error.message);
