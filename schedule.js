@@ -91,7 +91,7 @@ async function getSchedule(nextWeek = false) {
       console.log("⏩ Chuyển sang lịch tuần sau...");
       await page.waitForSelector("button.css-15yftlf", { timeout: 10000 });
       await page.click("button.css-15yftlf");
-      await page.waitForTimeout(2000); // Chờ trang tải lại dữ liệu tuần sau
+      await new Promise(resolve => setTimeout(resolve, 2000)); // Chờ 2 giây để trang tải lại
       await page.waitForSelector(".MuiTable-root", { timeout: 30000 });
       console.log("✅ Đã chuyển sang tuần sau.");
     }
