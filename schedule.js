@@ -5,10 +5,10 @@ puppeteer.use(StealthPlugin());
 
 // Hàm làm sạch chuỗi, chỉ giữ các ký tự hợp lệ
 function cleanText(text) {
-  // Danh sách ký tự hợp lệ: chữ (bao gồm tiếng Việt), số, khoảng trắng, và các ký tự đặc biệt cần thiết
-  const validChars = /^[A-Za-zÀ-ỹ0-9\s\/:-.]*$/;
+  // Tập hợp ký tự hợp lệ: chữ Latin, số, khoảng trắng, và các ký tự đặc biệt cần thiết
+  const validPattern = /[A-Za-zÀ-ỹ0-9\s/:-\.]/;
   return Array.from(text)
-    .filter(char => validChars.test(char))
+    .filter(char => validPattern.test(char))
     .join("")
     .trim();
 }
