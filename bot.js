@@ -12,14 +12,14 @@ bot.onText(/\/start/, (msg) => {
   const chatId = msg.chat.id;
   bot.sendMessage(
         chatId,
-        "👋 Xin chào! Mình là Trợ lý UTH, luôn cập nhật thông tin nhanh và tiện nhất đến cho bạn.\n" +
+        "👋 Xin chào! Mình là Trợ lý UTH, luôn cập nhật thông tin nhanh và tiện nhất đến cho bé Nguyệt :>.\n" +
         "📅 /tuannay - Lấy lịch học tuần này.\n" +
         "💡Mẹo: Nhấn nút Menu 📋 bên cạnh để chọn lệnh nhanh hơn!");
 });
 
 bot.onText(/\/tuannay/, async (msg) => {
   const chatId = msg.chat.id;
-  bot.sendMessage(chatId, "📅 Đang lấy lịch học tuần này, vui lòng chờ... ⌛");
+  bot.sendMessage(chatId, "📅 Đang lấy lịch học tuần này, vui lòng chờ trong giây lát... ⌛");
 
   try {
     const { schedule, week } = await getSchedule();
@@ -35,10 +35,10 @@ bot.onText(/\/tuannay/, async (msg) => {
       if (classes.length) {
         classes.forEach((c) => {
           message += `⏰ **${c.shift}**\n` +
-                     `📖 **Môn:** ${c.subject}\n` +
+                     `📖 **Môn học:** ${c.subject}\n` +
                      `📅 **Tiết:** ${c.periods}\n` +
                      `🕛 **Giờ bắt đầu:** ${c.startTime}\n` +
-                     `📍 **Phòng:** ${c.room}\n\n`;
+                     `📍 **Phòng học:** ${c.room}\n\n`;
         });
       } else {
         message += "❌ Không có lịch\n";
@@ -53,7 +53,7 @@ bot.onText(/\/tuannay/, async (msg) => {
 });
 
 app.get("/ping", (req, res) => {
-  console.log("🏓 Ping từ Render!");
+  console.log("🏓 Chatbot được đánh thức bởi cron-job.org!");
   res.status(200).send("Bot is alive!");
 });
 
