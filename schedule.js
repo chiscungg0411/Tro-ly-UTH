@@ -71,7 +71,7 @@ async function login(page, username, password, retries = 3) {
   }
 }
 
-async function getSchedule() {
+async function getSchedule(nextWeek = false) {
   let browser;
   try {
     browser = await launchBrowser();
@@ -85,6 +85,16 @@ async function getSchedule() {
     });
     await page.waitForSelector(".MuiTable-root", { timeout: 30000 });
     console.log("✅ Đã tải trang lịch học.");
+
+    // Nếu lấy lịch tuần sau, nhấn nút ArrowForwardIcon
+    if (nextWeek) {
+      console.log("⏩ Chuyển sang lịch tuần sau...");
+      await page.waitForSelector("button.css-15yftlf", { timeout: 10000 });
+      await page.click("button.css-15yftlf");
+      await page.waitForTimeout(2000); // Chờ trang tải lại dữ liệu tuần sau
+      await page.waitForSelector(".MuiTable-root", { timeout: 30000 });
+      console.log("✅ Đã chuyển sang tuần sau.");
+    }
 
     const rawScheduleData = await page.evaluate(() => {
       const table = document.querySelector(".MuiTable-root");
@@ -148,7 +158,7 @@ async function getSchedule() {
       }));
     }
 
-    console.log("✅ Đã lấy và làm sạch lịch học.");
+    console.log(`✅ Đã lấy và làm sạch lịch học ${nextWeek ? "tuần sau" : "tuần này"}.`);
     return scheduleData;
   } catch (error) {
     console.error("❌ Lỗi trong getSchedule:", error.message);
