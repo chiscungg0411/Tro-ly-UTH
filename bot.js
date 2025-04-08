@@ -10,7 +10,11 @@ app.use(express.json());
 
 bot.onText(/\/start/, (msg) => {
   const chatId = msg.chat.id;
-  bot.sendMessage(chatId, "Xin chào! Mình là trợ lý UTH.\n- /tuannay: Xem lịch học tuần này");
+  bot.sendMessage(
+        chatId,
+        "👋 Xin chào! Mình là Trợ lý UTH, luôn cập nhật thông tin nhanh và tiện nhất đến cho bạn.\n" +
+        "📅 /tuannay - Lấy lịch học tuần này.\n" +
+        "💡Mẹo: Nhấn nút Menu 📋 bên cạnh để chọn lệnh nhanh hơn!");
 });
 
 bot.onText(/\/tuannay/, async (msg) => {
