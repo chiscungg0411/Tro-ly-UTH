@@ -15,7 +15,7 @@ function cleanText(text) {
 
 async function launchBrowser() {
   try {
-    const browser = await puppeteer.launch({
+    const browser = await puppeteerExtra.launch({
       executablePath: process.env.CHROME_PATH || "/usr/bin/google-chrome-stable",
       headless: "new",
       args: [
@@ -23,15 +23,21 @@ async function launchBrowser() {
         "--disable-setuid-sandbox",
         "--disable-dev-shm-usage",
         "--disable-gpu",
+        "--disable-extensions",
+        "--disable-background-networking",
         "--single-process",
         "--no-zygote",
+        "--disable-accelerated-2d-canvas", // Thêm để giảm tải GPU
+        "--disable-features=site-per-process", // Giảm tài nguyên
       ],
-      timeout: 60000,
+      defaultViewport: { width: 1280, height: 720 },
+      timeout: 120000,
+      pipe: true, // Dùng pipe thay vì WebSocket để tiết kiệm tài nguyên
     });
-    console.log("✅ Trình duyệt đã khởi động.");
+    console.log("✅ Trình duyệt Puppeteer đã khởi động.");
     return browser;
   } catch (error) {
-    console.error("❌ Lỗi khởi động trình duyệt:", error);
+    console.error("❌ Lỗi khởi động trình duyệt:", error.message);
     throw new Error("Không thể khởi động trình duyệt.");
   }
 }
