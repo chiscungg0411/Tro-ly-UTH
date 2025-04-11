@@ -1,4 +1,5 @@
-// schedule.js
+require("dotenv").config();
+
 function cleanText(text) {
   const validPattern = /[A-Za-zÀ-ỹ0-9\s/:.\-₫]/; // Thêm ₫ để giữ đơn vị tiền
   return Array.from(text)
@@ -68,7 +69,7 @@ async function getSchedule(launchBrowser, nextWeek = false) {
 
     if (nextWeek) {
       await page.click(".fc-next-button");
-      await new Promise((resolve) => setTimeout(resolve, 2000)); // Thay waitForTimeout
+      await new Promise((resolve) => setTimeout(resolve, 2000));
       console.log("✅ Đã chuyển sang tuần sau.");
     }
 
@@ -126,6 +127,7 @@ async function getTuition(launchBrowser) {
 
     // Kiểm tra và chọn "Tất cả" trong combobox
     const comboboxSelector = ".MuiSelect-select.MuiSelect-outlined";
+    await page.waitForSelector(comboboxSelector, { timeout: 10000 });
     const currentValue = await page.$eval(comboboxSelector, (el) => el.textContent.trim());
     if (currentValue !== "Tất cả") {
       await page.click(comboboxSelector);
@@ -135,11 +137,15 @@ async function getTuition(launchBrowser) {
         const allOption = options.find((opt) => opt.textContent.trim() === "Tất cả");
         if (allOption) allOption.click();
       });
-      await new Promise((resolve) => setTimeout(resolve, 2000)); // Thay waitForTimeout
+      await new Promise((resolve) => setTimeout(resolve, 3000)); // Đợi dữ liệu tải lại
       console.log("✅ Đã chọn 'Tất cả' trong combobox.");
     } else {
       console.log("✅ Combobox đã ở trạng thái 'Tất cả'.");
     }
+
+    // Đợi thêm để bảng tải hoàn toàn
+    await new Promise((resolve) => setTimeout(resolve, 2000));
+    console.log("⏳ Đã đợi thêm để bảng tải hoàn toàn.");
 
     const tuitionData = await page.evaluate(() => {
       const table = document.querySelector(".MuiTable-root");
@@ -148,24 +154,28 @@ async function getTuition(launchBrowser) {
       const rows = table.querySelectorAll("tbody tr");
       if (rows.length === 0) return { error: "Không có dữ liệu trong bảng." };
 
-      // Lấy dòng "Tổng" (dòng cuối cùng)
-      const totalRow = Array.from(rows).find((row) => row.textContent.includes("Tổng"));
-      if (!totalRow) return { error: "Không tìm thấy dòng tổng kết." };
+      // Lấy dòng cuối cùng (dòng "Tổng") và kiểm tra colspan
+      const totalRow = Array.from(rows).slice(-1)[0];
+      if (!totalRow || !totalRow.querySelector("td[colspan='4']")) {
+        console.log("DEBUG: Không tìm thấy dòng 'Tổng' với colspan=4");
+        console.log("DEBUG: Nội dung bảng:", table.outerHTML.slice(0, 500)); // Log để debug
+        return { error: "Không tìm thấy dòng tổng kết hợp lệ." };
+      }
 
       const totalCells = totalRow.querySelectorAll("td");
-      console.log(`DEBUG: Số cột trong dòng tổng: ${totalCells.length}`); // Log để debug
+      console.log(`DEBUG: Số cột trong dòng tổng: ${totalCells.length}`);
+      console.log(`DEBUG: Nội dung dòng tổng: ${totalRow.textContent.trim()}`);
 
-      // Lấy dữ liệu với kiểm tra an toàn
       const totalCredits = totalCells[4]
         ? parseInt(totalCells[4].textContent.trim()) || 0
-        : 0; // Cột "TC" (index 4)
+        : 0;
       const totalTuitionText = totalCells[5]
         ? totalCells[5].textContent.trim().replace(/[^0-9]/g, "")
-        : "0"; // Cột "Học phí" (index 5)
+        : "0";
       const totalTuition = parseInt(totalTuitionText) || 0;
       const totalDebtText = totalCells[12]
         ? totalCells[12].textContent.trim().replace(/[^0-9]/g, "")
-        : "0"; // Cột "Công nợ" (index 12)
+        : "0";
       const totalDebt = parseInt(totalDebtText) || 0;
 
       return { totalCredits, totalTuition, totalDebt };
