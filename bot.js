@@ -4,9 +4,31 @@ const express = require("express");
 const { getSchedule } = require("./schedule");
 
 const token = process.env.TELEGRAM_BOT_TOKEN;
-const bot = new TelegramBot(token, { polling: true });
 const app = express();
 app.use(express.json());
+const bot = new TelegramBot(token); // Xóa { polling: true }
+
+// Xử lý SIGTERM gracefully
+process.on("SIGTERM", async () => {
+  console.log("📴 Nhận tín hiệu SIGTERM, đang dừng bot...");
+  try {
+    await bot.deleteWebHook();
+    console.log("✅ Đã xóa webhook.");
+    console.log("✅ Bot đã dừng an toàn.");
+    process.exit(0);
+  } catch (error) {
+    console.error("❌ Lỗi khi dừng bot:", error.message);
+    process.exit(1);
+  }
+});
+
+// Xử lý lỗi hệ thống
+process.on("unhandledRejection", (reason, promise) => {
+  console.error("❌ Unhandled Rejection at:", promise, "reason:", reason);
+});
+process.on("uncaughtException", (error) => {
+  console.error("❌ Uncaught Exception:", error.message);
+});
 
 bot.onText(/\/start/, (msg) => {
   const chatId = msg.chat.id;
@@ -89,17 +111,30 @@ bot.onText(/\/tuansau/, async (msg) => {
   }
 });
 
+// Cấu hình Webhook
+const PORT = process.env.PORT || 10001;
+const webhookUrl = `https://${process.env.RENDER_EXTERNAL_HOSTNAME}/bot${token}`;
+
+// Endpoint nhận tin nhắn từ Telegram
+app.post(`/bot${token}`, (req, res) => {
+  bot.processUpdate(req.body);
+  res.sendStatus(200);
+});
+
+// Health check endpoint
 app.get("/ping", (req, res) => {
   console.log("🏓 Chatbot được đánh thức bởi cron-job.org!");
   res.status(200).send("Bot is alive!");
 });
 
-const PORT = process.env.PORT || 10001;
-app.listen(PORT, () => {
+// Khởi động server và thiết lập webhook
+app.listen(PORT, async () => {
   console.log(`Server chạy trên port ${PORT}`);
-  console.log("🤖 Bot Telegram đang hoạt động...");
-});
-
-bot.on("polling_error", (error) => {
-  console.error("❌ Polling error:", error.message);
+  try {
+    await bot.setWebHook(webhookUrl);
+    console.log(`✅ Webhook được thiết lập: ${webhookUrl}`);
+  } catch (error) {
+    console.error("❌ Lỗi thiết lập webhook:", error.message);
+  }
+  console.log("🤖 Bot Telegram (Webhook) đang hoạt động...");
 });
