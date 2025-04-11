@@ -1,6 +1,6 @@
-// Loại bỏ import puppeteer và puppeteer-extra vì sẽ dùng từ bot.js
+// schedule.js
 function cleanText(text) {
-  const validPattern = /[A-Za-zÀ-ỹ0-9\s/:.\-]/;
+  const validPattern = /[A-Za-zÀ-ỹ0-9\s/:.\-₫]/; // Thêm ₫ để giữ đơn vị tiền
   return Array.from(text)
     .filter(char => validPattern.test(char))
     .join("")
@@ -42,7 +42,7 @@ async function login(page, username, password, retries = 3) {
   }
 }
 
-async function getSchedule(launchBrowser, nextWeek = false) { // Nhận launchBrowser làm tham số
+async function getSchedule(launchBrowser, nextWeek = false) {
   let browser;
   try {
     browser = await launchBrowser();
@@ -50,84 +50,56 @@ async function getSchedule(launchBrowser, nextWeek = false) { // Nhận launchBr
 
     await login(page, process.env.UT_USERNAME, process.env.UT_PASSWORD);
 
-    await page.goto("https://portal.ut.edu.vn/calendar", {
+    await page.goto("https://portal.ut.edu.vn/schedule", {
       waitUntil: "networkidle2",
       timeout: 60000,
     });
-    await page.waitForSelector(".MuiTable-root", { timeout: 30000 });
+    await page.waitForSelector("#schedule-grid", { timeout: 30000 });
     console.log("✅ Đã tải trang lịch học.");
 
+    const weekOptions = await page.$$eval(".fc-multimonth-title", (elements) =>
+      elements.map((el) => el.textContent.trim())
+    );
+    const currentWeekIndex = nextWeek ? 1 : 0;
+
+    if (weekOptions.length <= currentWeekIndex) {
+      throw new Error("Không có lịch tuần sau để lấy.");
+    }
+
     if (nextWeek) {
-      console.log("⏩ Chuyển sang lịch tuần sau...");
-      await page.waitForSelector("button.css-15yftlf", { timeout: 10000 });
-      await page.click("button.css-15yftlf");
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      await page.waitForSelector(".MuiTable-root", { timeout: 30000 });
+      await page.click(".fc-next-button");
+      await page.waitForTimeout(2000);
       console.log("✅ Đã chuyển sang tuần sau.");
     }
 
-    const rawScheduleData = await page.evaluate(() => {
-      const table = document.querySelector(".MuiTable-root");
-      if (!table) return { error: "Không tìm thấy bảng lịch học." };
+    const scheduleData = await page.evaluate((weekIndex) => {
+      const weekElements = document.querySelectorAll(".fc-multimonth-month");
+      const targetWeek = weekElements[weekIndex];
+      if (!targetWeek) return { error: "Không tìm thấy tuần yêu cầu." };
 
-      const headers = Array.from(table.querySelectorAll("thead th")).map((th) =>
-        th.textContent.trim().replace(/\n/g, " - ")
-      );
-      const days = headers.slice(1);
+      const events = targetWeek.querySelectorAll(".fc-daygrid-event");
       const schedule = {};
 
-      days.forEach((day) => (schedule[day] = []));
+      events.forEach((event) => {
+        const titleEl = event.querySelector(".fc-event-title");
+        const timeEl = event.querySelector(".fc-event-time");
+        if (titleEl && timeEl) {
+          const title = titleEl.textContent.trim();
+          const time = timeEl.textContent.trim();
+          const dateEl = event.closest(".fc-daygrid-day");
+          const date = dateEl ? dateEl.getAttribute("data-date") : "Unknown Date";
 
-      const rows = table.querySelectorAll("tbody tr");
-      rows.forEach((row) => {
-        const cells = row.querySelectorAll("td");
-        const shift = cells[0]?.textContent.trim();
-        if (!shift || shift.includes("Sáng") || shift.includes("Chiều") || shift.includes("Tối")) return;
-
-        for (let i = 1; i < cells.length; i++) {
-          const day = days[i - 1];
-          const cell = cells[i];
-          const classBox = cell.querySelector(".MuiBox-root.css-415vdw");
-
-          if (classBox) {
-            const subject = classBox.querySelector(".css-eu5kgx")?.textContent.trim() || "Không rõ";
-            const details = Array.from(classBox.querySelectorAll(".css-189xydx")).map((p) => p.textContent.trim());
-            const periods = details[1]?.replace("Tiết: ", "") || "Không rõ";
-            const time = details[2] || "Không rõ";
-            const startTime = time.split(" - ")[0] || "Không rõ";
-            const room = details[3]?.replace("Phòng: ", "") || "Không rõ";
-
-            schedule[day].push({
-              shift,
-              subject,
-              periods,
-              startTime,
-              room,
-            });
-          }
+          if (!schedule[date]) schedule[date] = [];
+          schedule[date].push({ time, title });
         }
       });
 
-      return { schedule, week: days[0].split(" - ")[1] || "hiện tại" };
-    });
+      return schedule;
+    }, currentWeekIndex);
 
-    if (rawScheduleData.error) throw new Error(rawScheduleData.error);
+    if (scheduleData.error) throw new Error(scheduleData.error);
 
-    const scheduleData = {
-      schedule: {},
-      week: cleanText(rawScheduleData.week),
-    };
-    for (const day in rawScheduleData.schedule) {
-      scheduleData.schedule[day] = rawScheduleData.schedule[day].map((classInfo) => ({
-        shift: cleanText(classInfo.shift),
-        subject: cleanText(classInfo.subject),
-        periods: cleanText(classInfo.periods),
-        startTime: cleanText(classInfo.startTime),
-        room: cleanText(classInfo.room),
-      }));
-    }
-
-    console.log(`✅ Đã lấy và làm sạch lịch học ${nextWeek ? "tuần sau" : "tuần này"}.`);
+    console.log("✅ Đã lấy lịch học thành công.");
     return scheduleData;
   } catch (error) {
     console.error("❌ Lỗi trong getSchedule:", error.message);
@@ -137,4 +109,83 @@ async function getSchedule(launchBrowser, nextWeek = false) { // Nhận launchBr
   }
 }
 
-module.exports = { getSchedule };
+async function getTuition(launchBrowser) {
+  let browser;
+  try {
+    browser = await launchBrowser();
+    const page = await browser.newPage();
+
+    await login(page, process.env.UT_USERNAME, process.env.UT_PASSWORD);
+
+    await page.goto("https://portal.ut.edu.vn/tuition", {
+      waitUntil: "networkidle2",
+      timeout: 60000,
+    });
+    await page.waitForSelector(".MuiTable-root", { timeout: 30000 });
+    console.log("✅ Đã tải trang công nợ.");
+
+    // Kiểm tra và chọn "Tất cả" trong combobox
+    const comboboxSelector = ".MuiSelect-select.MuiSelect-outlined";
+    const currentValue = await page.$eval(comboboxSelector, el => el.textContent.trim());
+    if (currentValue !== "Tất cả") {
+      await page.click(comboboxSelector);
+      await page.waitForSelector(".MuiMenu-list", { timeout: 10000 });
+      await page.evaluate(() => {
+        const options = Array.from(document.querySelectorAll(".MuiMenuItem-root"));
+        const allOption = options.find(opt => opt.textContent.trim() === "Tất cả");
+        if (allOption) allOption.click();
+      });
+      await page.waitForTimeout(2000); // Chờ dữ liệu tải lại
+      console.log("✅ Đã chọn 'Tất cả' trong combobox.");
+    } else {
+      console.log("✅ Combobox đã ở trạng thái 'Tất cả'.");
+    }
+
+    const tuitionData = await page.evaluate(() => {
+      const table = document.querySelector(".MuiTable-root");
+      if (!table) return { error: "Không tìm thấy bảng công nợ." };
+
+      const rows = table.querySelectorAll("tbody tr");
+      let totalCredits = 0;
+      let totalTuition = 0;
+
+      rows.forEach(row => {
+        const cells = row.querySelectorAll("td");
+        if (cells.length > 5) { // Đảm bảo là dòng dữ liệu, không phải dòng tổng
+          const credits = parseInt(cells[4].textContent.trim()) || 0; // Cột "TC"
+          const tuitionText = cells[5].textContent.trim().replace(/[^0-9]/g, ""); // Cột "Học phí"
+          const tuition = parseInt(tuitionText) || 0;
+
+          totalCredits += credits;
+          totalTuition += tuition;
+        }
+      });
+
+      // Lấy dòng tổng (nếu có)
+      const totalRow = Array.from(rows).find(row => row.textContent.includes("Tổng"));
+      if (totalRow) {
+        const totalCells = totalRow.querySelectorAll("td");
+        totalCredits = parseInt(totalCells[4].textContent.trim()) || totalCredits; // Cột "TC" tổng
+        const totalTuitionText = totalCells[5].textContent.trim().replace(/[^0-9]/g, ""); // Cột "Học phí" tổng
+        totalTuition = parseInt(totalTuitionText) || totalTuition;
+      }
+
+      return { totalCredits, totalTuition };
+    });
+
+    if (tuitionData.error) throw new Error(tuitionData.error);
+
+    console.log("✅ Đã lấy thông tin công nợ thành công.");
+    return {
+      totalCredits: tuitionData.totalCredits,
+      totalTuition: tuitionData.totalTuition.toLocaleString("vi-VN") + " ₫" // Định dạng tiền VNĐ
+    };
+  } catch (error) {
+    console.error("❌ Lỗi trong getTuition:", error.message);
+    throw error;
+  } finally {
+    if (browser) await browser.close();
+  }
+}
+
+module.exports = { getSchedule, getTuition };
