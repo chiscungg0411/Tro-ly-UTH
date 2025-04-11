@@ -55,10 +55,19 @@ async function getSchedule(launchBrowser, nextWeek = false) {
       waitUntil: "networkidle2",
       timeout: 60000,
     });
-    await page.waitForSelector("#schedule-grid", { timeout: 30000 });
+    console.log("DEBUG: URL hiện tại sau khi goto schedule:", page.url());
+
+    // Chờ selector chung cho FullCalendar hoặc bảng lịch
+    await page.waitForSelector(".fc-daygrid-body, .fc-multimonth-month, table", {
+      timeout: 60000, // Tăng thời gian chờ lên 60s
+    });
     console.log("✅ Đã tải trang lịch học.");
 
-    const weekOptions = await page.$$eval(".fc-multimonth-title", (elements) =>
+    // Log nội dung trang để debug
+    const pageContent = await page.content();
+    console.log("DEBUG: Nội dung trang lịch (500 ký tự đầu):", pageContent.slice(0, 500));
+
+    const weekOptions = await page.$$eval(".fc-multimonth-title, .fc-col-header-cell", (elements) =>
       elements.map((el) => el.textContent.trim())
     );
     const currentWeekIndex = nextWeek ? 1 : 0;
@@ -69,16 +78,17 @@ async function getSchedule(launchBrowser, nextWeek = false) {
 
     if (nextWeek) {
       await page.click(".fc-next-button");
-      await new Promise((resolve) => setTimeout(resolve, 2000));
+      await new Promise((resolve) => setTimeout(resolve, 3000)); // Đợi 3s sau khi chuyển tuần
       console.log("✅ Đã chuyển sang tuần sau.");
     }
 
     const scheduleData = await page.evaluate((weekIndex) => {
-      const weekElements = document.querySelectorAll(".fc-multimonth-month");
-      const targetWeek = weekElements[weekIndex];
+      // Thử lấy từ FullCalendar multimonth hoặc daygrid
+      const weekElements = document.querySelectorAll(".fc-multimonth-month, .fc-daygrid-day");
+      const targetWeek = weekElements[weekIndex] || weekElements[0]; // Fallback nếu không có multimonth
       if (!targetWeek) return { error: "Không tìm thấy tuần yêu cầu." };
 
-      const events = targetWeek.querySelectorAll(".fc-daygrid-event");
+      const events = targetWeek.querySelectorAll(".fc-daygrid-event, .fc-event");
       const schedule = {};
 
       events.forEach((event) => {
@@ -88,7 +98,7 @@ async function getSchedule(launchBrowser, nextWeek = false) {
           const title = titleEl.textContent.trim();
           const time = timeEl.textContent.trim();
           const dateEl = event.closest(".fc-daygrid-day");
-          const date = dateEl ? dateEl.getAttribute("data-date") : "Unknown Date";
+          const date = dateEl ? dateEl.getAttribute("data-date") || "Unknown Date" : "Unknown Date";
 
           if (!schedule[date]) schedule[date] = [];
           schedule[date].push({ time, title });
@@ -125,7 +135,6 @@ async function getTuition(launchBrowser) {
     await page.waitForSelector(".MuiTable-root", { timeout: 30000 });
     console.log("✅ Đã tải trang công nợ.");
 
-    // Kiểm tra và chọn "Tất cả" trong combobox
     const comboboxSelector = ".MuiSelect-select.MuiSelect-outlined";
     await page.waitForSelector(comboboxSelector, { timeout: 10000 });
     const currentValue = await page.$eval(comboboxSelector, (el) => el.textContent.trim());
@@ -137,13 +146,12 @@ async function getTuition(launchBrowser) {
         const allOption = options.find((opt) => opt.textContent.trim() === "Tất cả");
         if (allOption) allOption.click();
       });
-      await new Promise((resolve) => setTimeout(resolve, 5000)); // Đợi 5s để dữ liệu tải lại
+      await new Promise((resolve) => setTimeout(resolve, 5000));
       console.log("✅ Đã chọn 'Tất cả' trong combobox.");
     } else {
       console.log("✅ Combobox đã ở trạng thái 'Tất cả'.");
     }
 
-    // Đợi thêm để bảng tải hoàn toàn
     await new Promise((resolve) => setTimeout(resolve, 3000));
     console.log("⏳ Đã đợi thêm để bảng tải hoàn toàn.");
 
@@ -154,13 +162,11 @@ async function getTuition(launchBrowser) {
       const rows = table.querySelectorAll("tbody tr");
       if (rows.length === 0) return { error: "Không có dữ liệu trong bảng." };
 
-      // Log toàn bộ bảng để debug
       console.log(`DEBUG: Số dòng trong bảng: ${rows.length}`);
       rows.forEach((row, index) => {
         console.log(`DEBUG: Dòng ${index}: ${row.textContent.trim()}`);
       });
 
-      // Lấy dòng cuối cùng (dòng "Tổng") và kiểm tra colspan
       const totalRow = Array.from(rows).slice(-1)[0];
       if (!totalRow || !totalRow.querySelector("td[colspan='4']")) {
         console.log("DEBUG: Không tìm thấy dòng 'Tổng' với colspan=4");
@@ -171,14 +177,13 @@ async function getTuition(launchBrowser) {
       console.log(`DEBUG: Số cột trong dòng tổng: ${totalCells.length}`);
       console.log(`DEBUG: Nội dung dòng tổng: ${totalRow.textContent.trim()}`);
 
-      // Lấy toàn bộ text và tìm giá trị dạng số
       const totalText = totalRow.textContent.trim();
-      const numbers = totalText.match(/\d+(?:\.\d+)?/g) || []; // Tìm tất cả số trong text
+      const numbers = totalText.match(/\d+(?:\.\d+)?/g) || [];
       console.log(`DEBUG: Các số tìm thấy trong dòng tổng: ${numbers}`);
 
-      const totalCredits = numbers.length > 0 ? parseInt(numbers[0]) || 0 : 0; // Số đầu tiên là tín chỉ
-      const totalTuition = numbers.length > 1 ? parseInt(numbers[1]) || 0 : 0; // Số thứ hai là học phí
-      const totalDebt = numbers.length > 2 ? parseInt(numbers[numbers.length - 1]) || 0 : 0; // Số cuối là công nợ
+      const totalCredits = numbers.length > 0 ? parseInt(numbers[0]) || 0 : 0;
+      const totalTuition = numbers.length > 1 ? parseInt(numbers[1]) || 0 : 0;
+      const totalDebt = numbers.length > 2 ? parseInt(numbers[numbers.length - 1]) || 0 : 0;
 
       return { totalCredits, totalTuition, totalDebt };
     });
