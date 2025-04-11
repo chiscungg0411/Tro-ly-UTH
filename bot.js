@@ -1,12 +1,16 @@
 require("dotenv").config();
 const TelegramBot = require("node-telegram-bot-api");
 const express = require("express");
+const puppeteerExtra = require("puppeteer-extra"); // Thêm import
+const StealthPlugin = require("puppeteer-extra-plugin-stealth"); // Thêm import
 const { getSchedule } = require("./schedule");
+
+puppeteerExtra.use(StealthPlugin()); // Khởi tạo StealthPlugin
 
 const token = process.env.TELEGRAM_BOT_TOKEN;
 const app = express();
 app.use(express.json());
-const bot = new TelegramBot(token); // Xóa { polling: true }
+const bot = new TelegramBot(token);
 
 // Xử lý SIGTERM gracefully
 process.on("SIGTERM", async () => {
