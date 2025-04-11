@@ -1,37 +1,111 @@
-require("dotenv").config();
-const puppeteerExtra = require("puppeteer-extra");
-const StealthPlugin = require("puppeteer-extra-plugin-stealth");
+// schedule.js
+function cleanText(text) {
+  const validPattern = /[A-Za-zÀ-ỹ0-9\s/:.\-₫]/; // Thêm ₫ để giữ đơn vị tiền
+  return Array.from(text)
+    .filter((char) => validPattern.test(char))
+    .join("")
+    .trim();
+}
 
-puppeteerExtra.use(StealthPlugin());
+async function login(page, username, password, retries = 3) {
+  for (let attempt = 1; attempt <= retries; attempt++) {
+    try {
+      console.log(`🔑 Thử đăng nhập lần ${attempt}...`);
+      await page.goto("https://portal.ut.edu.vn/", {
+        waitUntil: "networkidle2",
+        timeout: 60000,
+      });
+      console.log("✅ Trang đăng nhập đã tải.");
 
-async function login(page, username, password) {
+      await page.waitForSelector("input[name='username']", { timeout: 30000 });
+      await page.type("input[name='username']", username, { delay: 50 });
+      await page.waitForSelector("input[name='password']", { timeout: 30000 });
+      await page.type("input[name='password']", password, { delay: 50 });
+      console.log("✍️ Đã nhập thông tin đăng nhập.");
+
+      await page.click("button[type='submit']");
+      await page.waitForNavigation({ waitUntil: "networkidle2", timeout: 60000 });
+      const finalUrl = page.url();
+      console.log(`🌐 URL sau đăng nhập: ${finalUrl}`);
+
+      if (finalUrl.includes("/dashboard")) {
+        console.log("✅ Đăng nhập thành công.");
+        return true;
+      } else {
+        throw new Error("Đăng nhập thất bại, kiểm tra thông tin.");
+      }
+    } catch (error) {
+      console.error(`❌ Lỗi đăng nhập lần ${attempt}:`, error.message);
+      if (attempt === retries) throw new Error(`Đăng nhập thất bại sau ${retries} lần.`);
+      await new Promise((resolve) => setTimeout(resolve, 2000));
+    }
+  }
+}
+
+async function getSchedule(launchBrowser, nextWeek = false) {
+  let browser;
   try {
-    await page.goto("https://portal.ut.edu.vn", {
+    browser = await launchBrowser();
+    const page = await browser.newPage();
+
+    await login(page, process.env.UT_USERNAME, process.env.UT_PASSWORD);
+
+    await page.goto("https://portal.ut.edu.vn/schedule", {
       waitUntil: "networkidle2",
       timeout: 60000,
     });
+    await page.waitForSelector("#schedule-grid", { timeout: 30000 });
+    console.log("✅ Đã tải trang lịch học.");
 
-    // Log URL hiện tại để debug
-    const currentUrl = page.url();
-    console.log(`DEBUG: URL hiện tại sau khi goto: ${currentUrl}`);
+    const weekOptions = await page.$$eval(".fc-multimonth-title", (elements) =>
+      elements.map((el) => el.textContent.trim())
+    );
+    const currentWeekIndex = nextWeek ? 1 : 0;
 
-    // Chờ selector #username hoặc timeout
-    await page.waitForSelector("#username", { timeout: 10000 }).catch(async (err) => {
-      console.error("❌ Không tìm thấy #username:", err.message);
-      const pageContent = await page.content();
-      console.log("DEBUG: Nội dung trang:", pageContent.slice(0, 500)); // Log 500 ký tự đầu
-      throw new Error("Không tìm thấy trường nhập username trên trang đăng nhập.");
-    });
+    if (weekOptions.length <= currentWeekIndex) {
+      throw new Error("Không có lịch tuần sau để lấy.");
+    }
 
-    await page.type("#username", username);
-    await page.type("#password", password);
-    await page.click("#submitButton");
+    if (nextWeek) {
+      await page.click(".fc-next-button");
+      await new Promise((resolve) => setTimeout(resolve, 2000)); // Thay waitForTimeout
+      console.log("✅ Đã chuyển sang tuần sau.");
+    }
 
-    await page.waitForNavigation({ waitUntil: "networkidle2", timeout: 60000 });
-    console.log("✅ Đăng nhập thành công.");
+    const scheduleData = await page.evaluate((weekIndex) => {
+      const weekElements = document.querySelectorAll(".fc-multimonth-month");
+      const targetWeek = weekElements[weekIndex];
+      if (!targetWeek) return { error: "Không tìm thấy tuần yêu cầu." };
+
+      const events = targetWeek.querySelectorAll(".fc-daygrid-event");
+      const schedule = {};
+
+      events.forEach((event) => {
+        const titleEl = event.querySelector(".fc-event-title");
+        const timeEl = event.querySelector(".fc-event-time");
+        if (titleEl && timeEl) {
+          const title = titleEl.textContent.trim();
+          const time = timeEl.textContent.trim();
+          const dateEl = event.closest(".fc-daygrid-day");
+          const date = dateEl ? dateEl.getAttribute("data-date") : "Unknown Date";
+
+          if (!schedule[date]) schedule[date] = [];
+          schedule[date].push({ time, title });
+        }
+      });
+
+      return schedule;
+    }, currentWeekIndex);
+
+    if (scheduleData.error) throw new Error(scheduleData.error);
+
+    console.log("✅ Đã lấy lịch học thành công.");
+    return scheduleData;
   } catch (error) {
-    console.error("❌ Lỗi trong login:", error.message);
+    console.error("❌ Lỗi trong getSchedule:", error.message);
     throw error;
+  } finally {
+    if (browser) await browser.close();
   }
 }
 
@@ -50,6 +124,7 @@ async function getTuition(launchBrowser) {
     await page.waitForSelector(".MuiTable-root", { timeout: 30000 });
     console.log("✅ Đã tải trang công nợ.");
 
+    // Kiểm tra và chọn "Tất cả" trong combobox
     const comboboxSelector = ".MuiSelect-select.MuiSelect-outlined";
     const currentValue = await page.$eval(comboboxSelector, (el) => el.textContent.trim());
     if (currentValue !== "Tất cả") {
@@ -60,14 +135,11 @@ async function getTuition(launchBrowser) {
         const allOption = options.find((opt) => opt.textContent.trim() === "Tất cả");
         if (allOption) allOption.click();
       });
-      await new Promise((resolve) => setTimeout(resolve, 3000));
+      await new Promise((resolve) => setTimeout(resolve, 2000)); // Thay waitForTimeout
       console.log("✅ Đã chọn 'Tất cả' trong combobox.");
     } else {
       console.log("✅ Combobox đã ở trạng thái 'Tất cả'.");
     }
-
-    await new Promise((resolve) => setTimeout(resolve, 2000));
-    console.log("⏳ Đã đợi thêm để bảng tải hoàn toàn.");
 
     const tuitionData = await page.evaluate(() => {
       const table = document.querySelector(".MuiTable-root");
@@ -76,26 +148,24 @@ async function getTuition(launchBrowser) {
       const rows = table.querySelectorAll("tbody tr");
       if (rows.length === 0) return { error: "Không có dữ liệu trong bảng." };
 
-      const totalRow = Array.from(rows).slice(-1)[0];
-      if (!totalRow || !totalRow.querySelector("td[colspan='4']")) {
-        console.log("DEBUG: Không tìm thấy dòng 'Tổng' với colspan=4");
-        return { error: "Không tìm thấy dòng tổng kết hợp lệ." };
-      }
+      // Lấy dòng "Tổng" (dòng cuối cùng)
+      const totalRow = Array.from(rows).find((row) => row.textContent.includes("Tổng"));
+      if (!totalRow) return { error: "Không tìm thấy dòng tổng kết." };
 
       const totalCells = totalRow.querySelectorAll("td");
-      console.log(`DEBUG: Số cột trong dòng tổng: ${totalCells.length}`);
-      console.log(`DEBUG: Nội dung dòng tổng: ${totalRow.textContent.trim()}`);
+      console.log(`DEBUG: Số cột trong dòng tổng: ${totalCells.length}`); // Log để debug
 
+      // Lấy dữ liệu với kiểm tra an toàn
       const totalCredits = totalCells[4]
         ? parseInt(totalCells[4].textContent.trim()) || 0
-        : 0;
+        : 0; // Cột "TC" (index 4)
       const totalTuitionText = totalCells[5]
         ? totalCells[5].textContent.trim().replace(/[^0-9]/g, "")
-        : "0";
+        : "0"; // Cột "Học phí" (index 5)
       const totalTuition = parseInt(totalTuitionText) || 0;
       const totalDebtText = totalCells[12]
         ? totalCells[12].textContent.trim().replace(/[^0-9]/g, "")
-        : "0";
+        : "0"; // Cột "Công nợ" (index 12)
       const totalDebt = parseInt(totalDebtText) || 0;
 
       return { totalCredits, totalTuition, totalDebt };
@@ -117,32 +187,4 @@ async function getTuition(launchBrowser) {
   }
 }
 
-async function getSchedule(launchBrowser, isNextWeek) {
-  let browser;
-  try {
-    browser = await launchBrowser();
-    const page = await browser.newPage();
-    await login(page, process.env.UT_USERNAME, process.env.UT_PASSWORD);
-
-    await page.goto("https://portal.ut.edu.vn/schedule", {
-      waitUntil: "networkidle2",
-      timeout: 60000,
-    });
-    // Giả định logic lấy lịch học (thay bằng code thật của bạn)
-    const schedule = await page.evaluate(() => {
-      return { "Thứ 2": [{ time: "08:00-10:00", title: "Môn A" }] }; // Ví dụ
-    });
-
-    return schedule;
-  } catch (error) {
-    console.error("❌ Lỗi trong getSchedule:", error.message);
-    throw error;
-  } finally {
-    if (browser) await browser.close();
-  }
-}
-
-module.exports = {
-  getSchedule,
-  getTuition,
-};
+module.exports = { getSchedule, getTuition };
