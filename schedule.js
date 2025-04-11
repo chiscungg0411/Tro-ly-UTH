@@ -153,13 +153,19 @@ async function getTuition(launchBrowser) {
       if (!totalRow) return { error: "Không tìm thấy dòng tổng kết." };
 
       const totalCells = totalRow.querySelectorAll("td");
-      if (totalCells.length < 13) return { error: "Dòng tổng kết không đủ cột." };
+      console.log(`DEBUG: Số cột trong dòng tổng: ${totalCells.length}`); // Log để debug
 
-      // Lấy các giá trị từ dòng "Tổng"
-      const totalCredits = parseInt(totalCells[4].textContent.trim()) || 0; // Cột "TC" (index 4)
-      const totalTuitionText = totalCells[5].textContent.trim().replace(/[^0-9]/g, ""); // Cột "Học phí" (index 5)
+      // Lấy dữ liệu với kiểm tra an toàn
+      const totalCredits = totalCells[4]
+        ? parseInt(totalCells[4].textContent.trim()) || 0
+        : 0; // Cột "TC" (index 4)
+      const totalTuitionText = totalCells[5]
+        ? totalCells[5].textContent.trim().replace(/[^0-9]/g, "")
+        : "0"; // Cột "Học phí" (index 5)
       const totalTuition = parseInt(totalTuitionText) || 0;
-      const totalDebtText = totalCells[12].textContent.trim().replace(/[^0-9]/g, ""); // Cột "Công nợ" (index 12)
+      const totalDebtText = totalCells[12]
+        ? totalCells[12].textContent.trim().replace(/[^0-9]/g, "")
+        : "0"; // Cột "Công nợ" (index 12)
       const totalDebt = parseInt(totalDebtText) || 0;
 
       return { totalCredits, totalTuition, totalDebt };
@@ -171,7 +177,7 @@ async function getTuition(launchBrowser) {
     return {
       totalCredits: tuitionData.totalCredits,
       totalTuition: tuitionData.totalTuition.toLocaleString("vi-VN") + " ₫",
-      totalDebt: tuitionData.totalDebt.toLocaleString("vi-VN") + " ₫", // Thêm công nợ
+      totalDebt: tuitionData.totalDebt.toLocaleString("vi-VN") + " ₫",
     };
   } catch (error) {
     console.error("❌ Lỗi trong getTuition:", error.message);
