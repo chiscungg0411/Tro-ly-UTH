@@ -2,7 +2,7 @@
 function cleanText(text) {
   const validPattern = /[A-Za-zÀ-ỹ0-9\s/:.\-₫]/; // Thêm ₫ để giữ đơn vị tiền
   return Array.from(text)
-    .filter(char => validPattern.test(char))
+    .filter((char) => validPattern.test(char))
     .join("")
     .trim();
 }
@@ -126,13 +126,13 @@ async function getTuition(launchBrowser) {
 
     // Kiểm tra và chọn "Tất cả" trong combobox
     const comboboxSelector = ".MuiSelect-select.MuiSelect-outlined";
-    const currentValue = await page.$eval(comboboxSelector, el => el.textContent.trim());
+    const currentValue = await page.$eval(comboboxSelector, (el) => el.textContent.trim());
     if (currentValue !== "Tất cả") {
       await page.click(comboboxSelector);
       await page.waitForSelector(".MuiMenu-list", { timeout: 10000 });
       await page.evaluate(() => {
         const options = Array.from(document.querySelectorAll(".MuiMenuItem-root"));
-        const allOption = options.find(opt => opt.textContent.trim() === "Tất cả");
+        const allOption = options.find((opt) => opt.textContent.trim() === "Tất cả");
         if (allOption) allOption.click();
       });
       await new Promise((resolve) => setTimeout(resolve, 2000)); // Thay waitForTimeout
@@ -146,31 +146,23 @@ async function getTuition(launchBrowser) {
       if (!table) return { error: "Không tìm thấy bảng công nợ." };
 
       const rows = table.querySelectorAll("tbody tr");
-      let totalCredits = 0;
-      let totalTuition = 0;
+      if (rows.length === 0) return { error: "Không có dữ liệu trong bảng." };
 
-      rows.forEach(row => {
-        const cells = row.querySelectorAll("td");
-        if (cells.length > 5) { // Đảm bảo là dòng dữ liệu, không phải dòng tổng
-          const credits = parseInt(cells[4].textContent.trim()) || 0; // Cột "TC"
-          const tuitionText = cells[5].textContent.trim().replace(/[^0-9]/g, ""); // Cột "Học phí"
-          const tuition = parseInt(tuitionText) || 0;
+      // Lấy dòng "Tổng" (dòng cuối cùng)
+      const totalRow = Array.from(rows).find((row) => row.textContent.includes("Tổng"));
+      if (!totalRow) return { error: "Không tìm thấy dòng tổng kết." };
 
-          totalCredits += credits;
-          totalTuition += tuition;
-        }
-      });
+      const totalCells = totalRow.querySelectorAll("td");
+      if (totalCells.length < 13) return { error: "Dòng tổng kết không đủ cột." };
 
-      // Lấy dòng tổng (nếu có)
-      const totalRow = Array.from(rows).find(row => row.textContent.includes("Tổng"));
-      if (totalRow) {
-        const totalCells = totalRow.querySelectorAll("td");
-        totalCredits = parseInt(totalCells[4].textContent.trim()) || totalCredits; // Cột "TC" tổng
-        const totalTuitionText = totalCells[5].textContent.trim().replace(/[^0-9]/g, ""); // Cột "Học phí" tổng
-        totalTuition = parseInt(totalTuitionText) || totalTuition;
-      }
+      // Lấy các giá trị từ dòng "Tổng"
+      const totalCredits = parseInt(totalCells[4].textContent.trim()) || 0; // Cột "TC" (index 4)
+      const totalTuitionText = totalCells[5].textContent.trim().replace(/[^0-9]/g, ""); // Cột "Học phí" (index 5)
+      const totalTuition = parseInt(totalTuitionText) || 0;
+      const totalDebtText = totalCells[12].textContent.trim().replace(/[^0-9]/g, ""); // Cột "Công nợ" (index 12)
+      const totalDebt = parseInt(totalDebtText) || 0;
 
-      return { totalCredits, totalTuition };
+      return { totalCredits, totalTuition, totalDebt };
     });
 
     if (tuitionData.error) throw new Error(tuitionData.error);
@@ -178,7 +170,8 @@ async function getTuition(launchBrowser) {
     console.log("✅ Đã lấy thông tin công nợ thành công.");
     return {
       totalCredits: tuitionData.totalCredits,
-      totalTuition: tuitionData.totalTuition.toLocaleString("vi-VN") + " ₫" // Định dạng tiền VNĐ
+      totalTuition: tuitionData.totalTuition.toLocaleString("vi-VN") + " ₫",
+      totalDebt: tuitionData.totalDebt.toLocaleString("vi-VN") + " ₫", // Thêm công nợ
     };
   } catch (error) {
     console.error("❌ Lỗi trong getTuition:", error.message);
