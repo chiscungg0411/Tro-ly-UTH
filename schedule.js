@@ -1,19 +1,9 @@
 require("dotenv").config();
-const puppeteer = require("puppeteer");
-const TelegramBot = require("node-telegram-bot-api");
+const puppeteerExtra = require("puppeteer-extra"); // Thay puppeteer bằng puppeteer-extra
+const StealthPlugin = require("puppeteer-extra-plugin-stealth");
 
-// Khởi tạo bot Telegram với token từ .env
-const bot = new TelegramBot(process.env.TELEGRAM_TOKEN, { polling: true });
+puppeteerExtra.use(StealthPlugin());
 
-// Hàm khởi tạo Puppeteer
-const launchBrowser = async () => {
-  return puppeteer.launch({
-    headless: true,
-    args: ["--no-sandbox", "--disable-setuid-sandbox"],
-  });
-};
-
-// Hàm đăng nhập
 async function login(page, username, password) {
   await page.goto("https://portal.ut.edu.vn", {
     waitUntil: "networkidle2",
@@ -26,7 +16,6 @@ async function login(page, username, password) {
   console.log("✅ Đăng nhập thành công.");
 }
 
-// Hàm lấy thông tin công nợ
 async function getTuition(launchBrowser) {
   let browser;
   try {
@@ -109,33 +98,34 @@ async function getTuition(launchBrowser) {
   }
 }
 
-// Xử lý lệnh /start
-bot.onText(/\/start/, (msg) => {
-  const chatId = msg.chat.id;
-  bot.sendMessage(chatId, "Chào mừng bạn! Gửi /conjno để xem thông tin công nợ.");
-});
-
-// Xử lý lệnh /congno
-bot.onText(/\/congno/, async (msg) => {
-  const chatId = msg.chat.id;
-  bot.sendMessage(chatId, "Đang lấy thông tin công nợ, vui lòng chờ...");
-
+// Giả định có hàm getSchedule (nếu chưa có, bạn cần thêm vào)
+async function getSchedule(launchBrowser, isNextWeek) {
+  let browser;
   try {
-    const tuition = await getTuition(launchBrowser);
-    const response = `
-💰 **Thông tin công nợ của bạn:**
-------------------------------------
-📚 **Tổng tín chỉ:** ${tuition.totalCredits}
-💸 **Tổng học phí:** ${tuition.totalTuition}
-📉 **Công nợ:** ${tuition.totalDebt}
-------------------------------------
-✅ Dữ liệu được lấy từ tab "Học phí ngành" với tùy chọn "Tất cả".
-    `;
-    bot.sendMessage(chatId, response);
-  } catch (error) {
-    bot.sendMessage(chatId, `❌ Lỗi lấy thông tin công nợ: ${error.message}`);
-  }
-});
+    browser = await launchBrowser();
+    const page = await browser.newPage();
+    await login(page, process.env.UT_USERNAME, process.env.UT_PASSWORD);
 
-// Log khi bot khởi động
-console.log("✅ Bot Telegram đã khởi động.");
+    // Logic lấy lịch học (giả định, bạn cần thay bằng code thật)
+    await page.goto("https://portal.ut.edu.vn/schedule", {
+      waitUntil: "networkidle2",
+      timeout: 60000,
+    });
+    // Thêm logic chọn tuần này/tuần sau dựa trên isNextWeek
+    const schedule = await page.evaluate(() => {
+      return { "Thứ 2": [{ time: "08:00-10:00", title: "Môn A" }] }; // Ví dụ
+    });
+
+    return schedule;
+  } catch (error) {
+    console.error("❌ Lỗi trong getSchedule:", error.message);
+    throw error;
+  } finally {
+    if (browser) await browser.close();
+  }
+}
+
+module.exports = {
+  getSchedule,
+  getTuition,
+};
