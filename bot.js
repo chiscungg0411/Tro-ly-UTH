@@ -1,11 +1,11 @@
 require("dotenv").config();
 const TelegramBot = require("node-telegram-bot-api");
 const express = require("express");
-const puppeteerExtra = require("puppeteer-extra"); // Thêm import
-const StealthPlugin = require("puppeteer-extra-plugin-stealth"); // Thêm import
+const puppeteerExtra = require("puppeteer-extra");
+const StealthPlugin = require("puppeteer-extra-plugin-stealth");
 const { getSchedule } = require("./schedule");
 
-puppeteerExtra.use(StealthPlugin()); // Khởi tạo StealthPlugin
+puppeteerExtra.use(StealthPlugin());
 
 const token = process.env.TELEGRAM_BOT_TOKEN;
 const app = express();
@@ -34,6 +34,36 @@ process.on("uncaughtException", (error) => {
   console.error("❌ Uncaught Exception:", error.message);
 });
 
+// Hàm khởi động trình duyệt (chuyển từ schedule.js sang đây)
+async function launchBrowser() {
+  try {
+    const browser = await puppeteerExtra.launch({
+      executablePath: process.env.CHROME_PATH || "/usr/bin/google-chrome-stable",
+      headless: "new",
+      args: [
+        "--no-sandbox",
+        "--disable-setuid-sandbox",
+        "--disable-dev-shm-usage",
+        "--disable-gpu",
+        "--disable-extensions",
+        "--disable-background-networking",
+        "--single-process",
+        "--no-zygote",
+        "--disable-accelerated-2d-canvas",
+        "--disable-features=site-per-process",
+      ],
+      defaultViewport: { width: 1280, height: 720 },
+      timeout: 120000,
+      pipe: true,
+    });
+    console.log("✅ Trình duyệt Puppeteer đã khởi động.");
+    return browser;
+  } catch (error) {
+    console.error("❌ Lỗi khởi động trình duyệt:", error.message);
+    throw new Error("Không thể khởi động trình duyệt.");
+  }
+}
+
 bot.onText(/\/start/, (msg) => {
   const chatId = msg.chat.id;
   bot.sendMessage(
@@ -50,7 +80,7 @@ bot.onText(/\/tuannay/, async (msg) => {
   bot.sendMessage(chatId, "📅 Đang lấy lịch học tuần này, vui lòng chờ trong giây lát... ⌛");
 
   try {
-    const { schedule, week } = await getSchedule();
+    const { schedule, week } = await getSchedule(launchBrowser); // Truyền hàm launchBrowser
     let message = `📅 **Lịch học tuần này của bạn:**\n------------------------------------\n`;
 
     const days = Object.keys(schedule);
@@ -85,7 +115,7 @@ bot.onText(/\/tuansau/, async (msg) => {
   bot.sendMessage(chatId, "📆 Đang lấy lịch học tuần sau, vui lòng chờ trong giây lát... ⌛");
 
   try {
-    const { schedule, week } = await getSchedule(true);
+    const { schedule, week } = await getSchedule(launchBrowser, true); // Truyền hàm launchBrowser và nextWeek
     let message = `📆 **Lịch học tuần sau của bạn:**\n------------------------------------\n`;
 
     const days = Object.keys(schedule);
