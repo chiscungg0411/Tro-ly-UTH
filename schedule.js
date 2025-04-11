@@ -135,11 +135,15 @@ async function getTuition(launchBrowser) {
         const allOption = options.find((opt) => opt.textContent.trim() === "Tất cả");
         if (allOption) allOption.click();
       });
-      await new Promise((resolve) => setTimeout(resolve, 2000)); // Thay waitForTimeout
+      await new Promise((resolve) => setTimeout(resolve, 3000)); // Tăng thời gian chờ lên 3s
       console.log("✅ Đã chọn 'Tất cả' trong combobox.");
     } else {
       console.log("✅ Combobox đã ở trạng thái 'Tất cả'.");
     }
+
+    // Đợi thêm để đảm bảo bảng được render hoàn toàn
+    await new Promise((resolve) => setTimeout(resolve, 2000));
+    console.log("⏳ Đã đợi thêm để bảng tải hoàn toàn.");
 
     const tuitionData = await page.evaluate(() => {
       const table = document.querySelector(".MuiTable-root");
@@ -148,12 +152,16 @@ async function getTuition(launchBrowser) {
       const rows = table.querySelectorAll("tbody tr");
       if (rows.length === 0) return { error: "Không có dữ liệu trong bảng." };
 
-      // Lấy dòng "Tổng" (dòng cuối cùng)
-      const totalRow = Array.from(rows).find((row) => row.textContent.includes("Tổng"));
-      if (!totalRow) return { error: "Không tìm thấy dòng tổng kết." };
+      // Lấy dòng cuối cùng (dòng "Tổng") và kiểm tra colspan
+      const totalRow = Array.from(rows).slice(-1)[0]; // Lấy dòng cuối
+      if (!totalRow || !totalRow.querySelector("td[colspan='4']")) {
+        console.log("DEBUG: Không tìm thấy dòng 'Tổng' với colspan=4");
+        return { error: "Không tìm thấy dòng tổng kết hợp lệ." };
+      }
 
       const totalCells = totalRow.querySelectorAll("td");
-      console.log(`DEBUG: Số cột trong dòng tổng: ${totalCells.length}`); // Log để debug
+      console.log(`DEBUG: Số cột trong dòng tổng: ${totalCells.length}`);
+      console.log(`DEBUG: Nội dung dòng tổng: ${totalRow.textContent.trim()}`);
 
       // Lấy dữ liệu với kiểm tra an toàn
       const totalCredits = totalCells[4]
@@ -186,5 +194,3 @@ async function getTuition(launchBrowser) {
     if (browser) await browser.close();
   }
 }
-
-module.exports = { getSchedule, getTuition };
