@@ -1,9 +1,10 @@
+// bot.js
 require("dotenv").config();
 const TelegramBot = require("node-telegram-bot-api");
 const express = require("express");
 const puppeteerExtra = require("puppeteer-extra");
 const StealthPlugin = require("puppeteer-extra-plugin-stealth");
-const { getSchedule } = require("./schedule");
+const { getSchedule, getTuition } = require("./schedule");
 
 puppeteerExtra.use(StealthPlugin());
 
@@ -34,7 +35,7 @@ process.on("uncaughtException", (error) => {
   console.error("❌ Uncaught Exception:", error.message);
 });
 
-// Hàm khởi động trình duyệt (chuyển từ schedule.js sang đây)
+// Hàm khởi động trình duyệt
 async function launchBrowser() {
   try {
     const browser = await puppeteerExtra.launch({
@@ -71,6 +72,7 @@ bot.onText(/\/start/, (msg) => {
     "👋 Xin chào! Mình là Trợ lý UTH, luôn cập nhật thông tin nhanh và tiện nhất đến cho bé Nguyệt :>.\n" +
     "📅 /tuannay - Lấy lịch học tuần này.\n" +
     "📆 /tuansau - Lấy lịch học tuần sau.\n" +
+    "💰 /congno - Tổng hợp tín chỉ và học phí.\n" +
     "💡Mẹo: Nhấn nút Menu 📋 bên cạnh để chọn lệnh nhanh hơn!"
   );
 });
@@ -80,29 +82,22 @@ bot.onText(/\/tuannay/, async (msg) => {
   bot.sendMessage(chatId, "📅 Đang lấy lịch học tuần này, vui lòng chờ trong giây lát... ⌛");
 
   try {
-    const { schedule, week } = await getSchedule(launchBrowser); // Truyền hàm launchBrowser
-    let message = `📅 **Lịch học tuần này của bạn:**\n------------------------------------\n`;
+    const schedule = await getSchedule(launchBrowser, false);
+    let message = "📅 **Lịch học tuần này:**\n------------------------------------\n";
+    let hasSchedule = false;
 
-    const days = Object.keys(schedule);
-    days.forEach((day, index) => {
-      const [thu, ngay] = day.split(/(\d{2}\/\d{2}\/\d{4})/);
-      const formattedDay = `${thu} - ${ngay}`.trim();
-      
-      const classes = schedule[day];
-      message += `⭐ **${formattedDay}:**\n`;
-      if (classes.length) {
-        classes.forEach((c) => {
-          message += `⏰ **${c.shift}**\n` +
-                     `📖 **Môn học:** ${c.subject}\n` +
-                     `📅 **Tiết:** ${c.periods}\n` +
-                     `🕛 **Giờ bắt đầu:** ${c.startTime}\n` +
-                     `📍 **Phòng học:** ${c.room}\n\n`;
-        });
-      } else {
-        message += "❌ Không có lịch\n";
-      }
-      if (index < days.length - 1) message += "\n";
-    });
+    for (const [date, events] of Object.entries(schedule)) {
+      hasSchedule = true;
+      message += `📌 **${date}**:\n`;
+      events.forEach((event) => {
+        message += `   ⏰ ${event.time}: ${event.title}\n`;
+      });
+      message += "\n";
+    }
+
+    if (!hasSchedule) {
+      message = "📅 Tuần này không có lịch học.";
+    }
 
     bot.sendMessage(chatId, message, { parse_mode: "Markdown" });
   } catch (error) {
@@ -115,33 +110,45 @@ bot.onText(/\/tuansau/, async (msg) => {
   bot.sendMessage(chatId, "📆 Đang lấy lịch học tuần sau, vui lòng chờ trong giây lát... ⌛");
 
   try {
-    const { schedule, week } = await getSchedule(launchBrowser, true); // Truyền hàm launchBrowser và nextWeek
-    let message = `📆 **Lịch học tuần sau của bạn:**\n------------------------------------\n`;
+    const schedule = await getSchedule(launchBrowser, true);
+    let message = "📆 **Lịch học tuần sau:**\n------------------------------------\n";
+    let hasSchedule = false;
 
-    const days = Object.keys(schedule);
-    days.forEach((day, index) => {
-      const [thu, ngay] = day.split(/(\d{2}\/\d{2}\/\d{4})/);
-      const formattedDay = `${thu} - ${ngay}`.trim();
-      
-      const classes = schedule[day];
-      message += `⭐ **${formattedDay}:**\n`;
-      if (classes.length) {
-        classes.forEach((c) => {
-          message += `⏰ **${c.shift}**\n` +
-                     `📖 **Môn học:** ${c.subject}\n` +
-                     `📅 **Tiết:** ${c.periods}\n` +
-                     `🕛 **Giờ bắt đầu:** ${c.startTime}\n` +
-                     `📍 **Phòng học:** ${c.room}\n\n`;
-        });
-      } else {
-        message += "❌ Không có lịch\n";
-      }
-      if (index < days.length - 1) message += "\n";
-    });
+    for (const [date, events] of Object.entries(schedule)) {
+      hasSchedule = true;
+      message += `📌 **${date}**:\n`;
+      events.forEach((event) => {
+        message += `   ⏰ ${event.time}: ${event.title}\n`;
+      });
+      message += "\n";
+    }
+
+    if (!hasSchedule) {
+      message = "📆 Tuần sau không có lịch học.";
+    }
 
     bot.sendMessage(chatId, message, { parse_mode: "Markdown" });
   } catch (error) {
     bot.sendMessage(chatId, `❌ Lỗi lấy lịch học: ${error.message}`);
+  }
+});
+
+bot.onText(/\/congno/, async (msg) => {
+  const chatId = msg.chat.id;
+  bot.sendMessage(chatId, "💰 Đang lấy thông tin công nợ, vui lòng chờ trong giây lát... ⌛");
+
+  try {
+    const { totalCredits, totalTuition } = await getTuition(launchBrowser);
+    const message = `💰 **Thông tin công nợ của bạn:**\n` +
+                    `------------------------------------\n` +
+                    `📚 **Tổng tín chỉ:** ${totalCredits}\n` +
+                    `💸 **Tổng học phí:** ${totalTuition}\n` +
+                    `------------------------------------\n` +
+                    `✅ Dữ liệu được lấy từ tab "Học phí ngành" với tùy chọn "Tất cả".`;
+
+    bot.sendMessage(chatId, message, { parse_mode: "Markdown" });
+  } catch (error) {
+    bot.sendMessage(chatId, `❌ Lỗi lấy thông tin công nợ: ${error.message}`);
   }
 });
 
