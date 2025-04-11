@@ -146,7 +146,7 @@ bot.onText(/\/congno/, async (msg) => {
       `💸 **Tổng học phí:** ${totalTuition}\n` +
       `📉 **Công nợ:** ${totalDebt}\n` +
       `------------------------------------\n` +
-      `✅ Dữ liệu được lấy từ tab "Học phí ngành" với tùy chọn "Tất cả".`;
+      `✅ Vui lòng truy cập vào [Portal UTH](https://portal.ut.edu.vn/dashboard) để xem thông tin chi tiết.`;
 
     bot.sendMessage(chatId, message, { parse_mode: "Markdown" });
   } catch (error) {
