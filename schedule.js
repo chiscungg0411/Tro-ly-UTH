@@ -112,7 +112,7 @@ async function getTuition(launchBrowser) {
 // Xử lý lệnh /start
 bot.onText(/\/start/, (msg) => {
   const chatId = msg.chat.id;
-  bot.sendMessage(chatId, "Chào mừng bạn! Gửi /congno để xem thông tin công nợ.");
+  bot.sendMessage(chatId, "Chào mừng bạn! Gửi /conjno để xem thông tin công nợ.");
 });
 
 // Xử lý lệnh /congno
