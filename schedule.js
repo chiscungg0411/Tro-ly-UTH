@@ -68,7 +68,7 @@ async function getSchedule(launchBrowser, nextWeek = false) {
 
     if (nextWeek) {
       await page.click(".fc-next-button");
-      await page.waitForTimeout(2000);
+      await new Promise((resolve) => setTimeout(resolve, 2000)); // Thay waitForTimeout
       console.log("✅ Đã chuyển sang tuần sau.");
     }
 
@@ -135,7 +135,7 @@ async function getTuition(launchBrowser) {
         const allOption = options.find(opt => opt.textContent.trim() === "Tất cả");
         if (allOption) allOption.click();
       });
-      await page.waitForTimeout(2000); // Chờ dữ liệu tải lại
+      await new Promise((resolve) => setTimeout(resolve, 2000)); // Thay waitForTimeout
       console.log("✅ Đã chọn 'Tất cả' trong combobox.");
     } else {
       console.log("✅ Combobox đã ở trạng thái 'Tất cả'.");
