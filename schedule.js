@@ -137,14 +137,14 @@ async function getTuition(launchBrowser) {
         const allOption = options.find((opt) => opt.textContent.trim() === "Tất cả");
         if (allOption) allOption.click();
       });
-      await new Promise((resolve) => setTimeout(resolve, 3000)); // Đợi dữ liệu tải lại
+      await new Promise((resolve) => setTimeout(resolve, 5000)); // Tăng thời gian chờ lên 5s
       console.log("✅ Đã chọn 'Tất cả' trong combobox.");
     } else {
       console.log("✅ Combobox đã ở trạng thái 'Tất cả'.");
     }
 
     // Đợi thêm để bảng tải hoàn toàn
-    await new Promise((resolve) => setTimeout(resolve, 2000));
+    await new Promise((resolve) => setTimeout(resolve, 3000));
     console.log("⏳ Đã đợi thêm để bảng tải hoàn toàn.");
 
     const tuitionData = await page.evaluate(() => {
@@ -154,11 +154,16 @@ async function getTuition(launchBrowser) {
       const rows = table.querySelectorAll("tbody tr");
       if (rows.length === 0) return { error: "Không có dữ liệu trong bảng." };
 
+      // Log toàn bộ bảng để debug
+      console.log(`DEBUG: Số dòng trong bảng: ${rows.length}`);
+      rows.forEach((row, index) => {
+        console.log(`DEBUG: Dòng ${index}: ${row.textContent.trim()}`);
+      });
+
       // Lấy dòng cuối cùng (dòng "Tổng") và kiểm tra colspan
       const totalRow = Array.from(rows).slice(-1)[0];
       if (!totalRow || !totalRow.querySelector("td[colspan='4']")) {
         console.log("DEBUG: Không tìm thấy dòng 'Tổng' với colspan=4");
-        console.log("DEBUG: Nội dung bảng:", table.outerHTML.slice(0, 500)); // Log để debug
         return { error: "Không tìm thấy dòng tổng kết hợp lệ." };
       }
 
@@ -166,16 +171,17 @@ async function getTuition(launchBrowser) {
       console.log(`DEBUG: Số cột trong dòng tổng: ${totalCells.length}`);
       console.log(`DEBUG: Nội dung dòng tổng: ${totalRow.textContent.trim()}`);
 
+      // Lấy dữ liệu từ các cột chính xác
       const totalCredits = totalCells[4]
         ? parseInt(totalCells[4].textContent.trim()) || 0
-        : 0;
+        : 0; // Cột 4: Tổng tín chỉ
       const totalTuitionText = totalCells[5]
         ? totalCells[5].textContent.trim().replace(/[^0-9]/g, "")
-        : "0";
+        : "0"; // Cột 5: Tổng học phí
       const totalTuition = parseInt(totalTuitionText) || 0;
       const totalDebtText = totalCells[12]
         ? totalCells[12].textContent.trim().replace(/[^0-9]/g, "")
-        : "0";
+        : "0"; // Cột 12: Công nợ
       const totalDebt = parseInt(totalDebtText) || 0;
 
       return { totalCredits, totalTuition, totalDebt };
