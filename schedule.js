@@ -137,7 +137,7 @@ async function getTuition(launchBrowser) {
         const allOption = options.find((opt) => opt.textContent.trim() === "Tất cả");
         if (allOption) allOption.click();
       });
-      await new Promise((resolve) => setTimeout(resolve, 5000)); // Tăng thời gian chờ lên 5s
+      await new Promise((resolve) => setTimeout(resolve, 5000)); // Đợi 5s để dữ liệu tải lại
       console.log("✅ Đã chọn 'Tất cả' trong combobox.");
     } else {
       console.log("✅ Combobox đã ở trạng thái 'Tất cả'.");
@@ -171,18 +171,14 @@ async function getTuition(launchBrowser) {
       console.log(`DEBUG: Số cột trong dòng tổng: ${totalCells.length}`);
       console.log(`DEBUG: Nội dung dòng tổng: ${totalRow.textContent.trim()}`);
 
-      // Lấy dữ liệu từ các cột chính xác
-      const totalCredits = totalCells[4]
-        ? parseInt(totalCells[4].textContent.trim()) || 0
-        : 0; // Cột 4: Tổng tín chỉ
-      const totalTuitionText = totalCells[5]
-        ? totalCells[5].textContent.trim().replace(/[^0-9]/g, "")
-        : "0"; // Cột 5: Tổng học phí
-      const totalTuition = parseInt(totalTuitionText) || 0;
-      const totalDebtText = totalCells[12]
-        ? totalCells[12].textContent.trim().replace(/[^0-9]/g, "")
-        : "0"; // Cột 12: Công nợ
-      const totalDebt = parseInt(totalDebtText) || 0;
+      // Lấy toàn bộ text và tìm giá trị dạng số
+      const totalText = totalRow.textContent.trim();
+      const numbers = totalText.match(/\d+(?:\.\d+)?/g) || []; // Tìm tất cả số trong text
+      console.log(`DEBUG: Các số tìm thấy trong dòng tổng: ${numbers}`);
+
+      const totalCredits = numbers.length > 0 ? parseInt(numbers[0]) || 0 : 0; // Số đầu tiên là tín chỉ
+      const totalTuition = numbers.length > 1 ? parseInt(numbers[1]) || 0 : 0; // Số thứ hai là học phí
+      const totalDebt = numbers.length > 2 ? parseInt(numbers[numbers.length - 1]) || 0 : 0; // Số cuối là công nợ
 
       return { totalCredits, totalTuition, totalDebt };
     });
