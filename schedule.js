@@ -1,45 +1,10 @@
-const puppeteer = require("puppeteer-extra");
-const StealthPlugin = require("puppeteer-extra-plugin-stealth");
-
-puppeteer.use(StealthPlugin());
-
-// Hàm làm sạch chuỗi, chỉ giữ các ký tự hợp lệ
+// Loại bỏ import puppeteer và puppeteer-extra vì sẽ dùng từ bot.js
 function cleanText(text) {
-  // Tập hợp ký tự hợp lệ: chữ Latin, số, khoảng trắng, và các ký tự đặc biệt cần thiết
-  const validPattern = /[A-Za-zÀ-ỹ0-9\s/:.\-]/; // Tách riêng /, :, ., - để tránh lỗi range
+  const validPattern = /[A-Za-zÀ-ỹ0-9\s/:.\-]/;
   return Array.from(text)
     .filter(char => validPattern.test(char))
     .join("")
     .trim();
-}
-
-async function launchBrowser() {
-  try {
-    const browser = await puppeteerExtra.launch({
-      executablePath: process.env.CHROME_PATH || "/usr/bin/google-chrome-stable",
-      headless: "new",
-      args: [
-        "--no-sandbox",
-        "--disable-setuid-sandbox",
-        "--disable-dev-shm-usage",
-        "--disable-gpu",
-        "--disable-extensions",
-        "--disable-background-networking",
-        "--single-process",
-        "--no-zygote",
-        "--disable-accelerated-2d-canvas", // Thêm để giảm tải GPU
-        "--disable-features=site-per-process", // Giảm tài nguyên
-      ],
-      defaultViewport: { width: 1280, height: 720 },
-      timeout: 120000,
-      pipe: true, // Dùng pipe thay vì WebSocket để tiết kiệm tài nguyên
-    });
-    console.log("✅ Trình duyệt Puppeteer đã khởi động.");
-    return browser;
-  } catch (error) {
-    console.error("❌ Lỗi khởi động trình duyệt:", error.message);
-    throw new Error("Không thể khởi động trình duyệt.");
-  }
 }
 
 async function login(page, username, password, retries = 3) {
@@ -77,7 +42,7 @@ async function login(page, username, password, retries = 3) {
   }
 }
 
-async function getSchedule(nextWeek = false) {
+async function getSchedule(launchBrowser, nextWeek = false) { // Nhận launchBrowser làm tham số
   let browser;
   try {
     browser = await launchBrowser();
@@ -92,12 +57,11 @@ async function getSchedule(nextWeek = false) {
     await page.waitForSelector(".MuiTable-root", { timeout: 30000 });
     console.log("✅ Đã tải trang lịch học.");
 
-    // Nếu lấy lịch tuần sau, nhấn nút ArrowForwardIcon
     if (nextWeek) {
       console.log("⏩ Chuyển sang lịch tuần sau...");
       await page.waitForSelector("button.css-15yftlf", { timeout: 10000 });
       await page.click("button.css-15yftlf");
-      await new Promise(resolve => setTimeout(resolve, 2000)); // Chờ 2 giây để trang tải lại
+      await new Promise(resolve => setTimeout(resolve, 2000));
       await page.waitForSelector(".MuiTable-root", { timeout: 30000 });
       console.log("✅ Đã chuyển sang tuần sau.");
     }
@@ -109,7 +73,7 @@ async function getSchedule(nextWeek = false) {
       const headers = Array.from(table.querySelectorAll("thead th")).map((th) =>
         th.textContent.trim().replace(/\n/g, " - ")
       );
-      const days = headers.slice(1); // Bỏ cột "Ca học"
+      const days = headers.slice(1);
       const schedule = {};
 
       days.forEach((day) => (schedule[day] = []));
@@ -149,7 +113,6 @@ async function getSchedule(nextWeek = false) {
 
     if (rawScheduleData.error) throw new Error(rawScheduleData.error);
 
-    // Làm sạch dữ liệu sau khi lấy từ trang web
     const scheduleData = {
       schedule: {},
       week: cleanText(rawScheduleData.week),
