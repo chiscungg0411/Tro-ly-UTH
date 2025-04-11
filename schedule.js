@@ -1,19 +1,38 @@
 require("dotenv").config();
-const puppeteerExtra = require("puppeteer-extra"); // Thay puppeteer bằng puppeteer-extra
+const puppeteerExtra = require("puppeteer-extra");
 const StealthPlugin = require("puppeteer-extra-plugin-stealth");
 
 puppeteerExtra.use(StealthPlugin());
 
 async function login(page, username, password) {
-  await page.goto("https://portal.ut.edu.vn", {
-    waitUntil: "networkidle2",
-    timeout: 60000,
-  });
-  await page.type("#username", username);
-  await page.type("#password", password);
-  await page.click("#submitButton");
-  await page.waitForNavigation({ waitUntil: "networkidle2" });
-  console.log("✅ Đăng nhập thành công.");
+  try {
+    await page.goto("https://portal.ut.edu.vn", {
+      waitUntil: "networkidle2",
+      timeout: 60000,
+    });
+
+    // Log URL hiện tại để debug
+    const currentUrl = page.url();
+    console.log(`DEBUG: URL hiện tại sau khi goto: ${currentUrl}`);
+
+    // Chờ selector #username hoặc timeout
+    await page.waitForSelector("#username", { timeout: 10000 }).catch(async (err) => {
+      console.error("❌ Không tìm thấy #username:", err.message);
+      const pageContent = await page.content();
+      console.log("DEBUG: Nội dung trang:", pageContent.slice(0, 500)); // Log 500 ký tự đầu
+      throw new Error("Không tìm thấy trường nhập username trên trang đăng nhập.");
+    });
+
+    await page.type("#username", username);
+    await page.type("#password", password);
+    await page.click("#submitButton");
+
+    await page.waitForNavigation({ waitUntil: "networkidle2", timeout: 60000 });
+    console.log("✅ Đăng nhập thành công.");
+  } catch (error) {
+    console.error("❌ Lỗi trong login:", error.message);
+    throw error;
+  }
 }
 
 async function getTuition(launchBrowser) {
@@ -98,7 +117,6 @@ async function getTuition(launchBrowser) {
   }
 }
 
-// Giả định có hàm getSchedule (nếu chưa có, bạn cần thêm vào)
 async function getSchedule(launchBrowser, isNextWeek) {
   let browser;
   try {
@@ -106,12 +124,11 @@ async function getSchedule(launchBrowser, isNextWeek) {
     const page = await browser.newPage();
     await login(page, process.env.UT_USERNAME, process.env.UT_PASSWORD);
 
-    // Logic lấy lịch học (giả định, bạn cần thay bằng code thật)
     await page.goto("https://portal.ut.edu.vn/schedule", {
       waitUntil: "networkidle2",
       timeout: 60000,
     });
-    // Thêm logic chọn tuần này/tuần sau dựa trên isNextWeek
+    // Giả định logic lấy lịch học (thay bằng code thật của bạn)
     const schedule = await page.evaluate(() => {
       return { "Thứ 2": [{ time: "08:00-10:00", title: "Môn A" }] }; // Ví dụ
     });
