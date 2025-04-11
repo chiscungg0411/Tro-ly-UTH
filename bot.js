@@ -137,7 +137,7 @@ bot.onText(/\/congno/, async (msg) => {
   bot.sendMessage(chatId, "💰 Đang lấy thông tin công nợ, vui lòng chờ trong giây lát... ⌛");
 
   try {
-    const tuition = await getTuition(launchBrowser); // Sửa cú pháp để nhận object đầy đủ
+    const tuition = await getTuition(launchBrowser);
     const message =
       `💰 **Thông tin công nợ của bạn:**\n` +
       `------------------------------------\n` +
