@@ -70,10 +70,10 @@ bot.onText(/\/start/, (msg) => {
   bot.sendMessage(
     chatId,
     "👋 Xin chào! Mình là Trợ lý UTH, luôn cập nhật thông tin nhanh và tiện nhất đến cho bé Nguyệt :>.\n" +
-    "📅 /tuannay - Lấy lịch học tuần này.\n" +
-    "📆 /tuansau - Lấy lịch học tuần sau.\n" +
-    "💰 /congno - Tổng hợp tín chỉ và học phí.\n" +
-    "💡Mẹo: Nhấn nút Menu 📋 bên cạnh để chọn lệnh nhanh hơn!"
+      "📅 /tuannay - Lấy lịch học tuần này.\n" +
+      "📆 /tuansau - Lấy lịch học tuần sau.\n" +
+      "💰 /congno - Tổng hợp tín chỉ và học phí.\n" +
+      "💡Mẹo: Nhấn nút Menu 📋 bên cạnh để chọn lệnh nhanh hơn!"
   );
 });
 
@@ -138,13 +138,15 @@ bot.onText(/\/congno/, async (msg) => {
   bot.sendMessage(chatId, "💰 Đang lấy thông tin công nợ, vui lòng chờ trong giây lát... ⌛");
 
   try {
-    const { totalCredits, totalTuition } = await getTuition(launchBrowser);
-    const message = `💰 **Thông tin công nợ của bạn:**\n` +
-                    `------------------------------------\n` +
-                    `📚 **Tổng tín chỉ:** ${totalCredits}\n` +
-                    `💸 **Tổng học phí:** ${totalTuition}\n` +
-                    `------------------------------------\n` +
-                    `✅ Dữ liệu được lấy từ tab "Học phí ngành" với tùy chọn "Tất cả".`;
+    const { totalCredits, totalTuition, totalDebt } = await getTuition(launchBrowser);
+    const message =
+      `💰 **Thông tin công nợ của bạn:**\n` +
+      `------------------------------------\n` +
+      `📚 **Tổng tín chỉ:** ${totalCredits}\n` +
+      `💸 **Tổng học phí:** ${totalTuition}\n` +
+      `📉 **Công nợ:** ${totalDebt}\n` +
+      `------------------------------------\n` +
+      `✅ Dữ liệu được lấy từ tab "Học phí ngành" với tùy chọn "Tất cả".`;
 
     bot.sendMessage(chatId, message, { parse_mode: "Markdown" });
   } catch (error) {
