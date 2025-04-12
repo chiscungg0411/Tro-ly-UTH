@@ -51,15 +51,15 @@ async function getSchedule(launchBrowser, nextWeek = false) {
 
     await login(page, process.env.UT_USERNAME, process.env.UT_PASSWORD);
 
-    await page.goto("https://portal.ut.edu.vn/schedule", {
+    await page.goto("https://portal.ut.edu.vn/calendar", { // Cập nhật URL
       waitUntil: "networkidle2",
       timeout: 60000,
     });
-    console.log("DEBUG: URL hiện tại sau khi goto schedule:", page.url());
+    console.log("DEBUG: URL hiện tại sau khi goto calendar:", page.url());
 
     // Chờ selector chung cho FullCalendar hoặc bảng lịch
     await page.waitForSelector(".fc-daygrid-body, .fc-multimonth-month, table", {
-      timeout: 60000, // Tăng thời gian chờ lên 60s
+      timeout: 60000,
     });
     console.log("✅ Đã tải trang lịch học.");
 
@@ -78,14 +78,13 @@ async function getSchedule(launchBrowser, nextWeek = false) {
 
     if (nextWeek) {
       await page.click(".fc-next-button");
-      await new Promise((resolve) => setTimeout(resolve, 3000)); // Đợi 3s sau khi chuyển tuần
+      await new Promise((resolve) => setTimeout(resolve, 3000));
       console.log("✅ Đã chuyển sang tuần sau.");
     }
 
     const scheduleData = await page.evaluate((weekIndex) => {
-      // Thử lấy từ FullCalendar multimonth hoặc daygrid
       const weekElements = document.querySelectorAll(".fc-multimonth-month, .fc-daygrid-day");
-      const targetWeek = weekElements[weekIndex] || weekElements[0]; // Fallback nếu không có multimonth
+      const targetWeek = weekElements[weekIndex] || weekElements[0];
       if (!targetWeek) return { error: "Không tìm thấy tuần yêu cầu." };
 
       const events = targetWeek.querySelectorAll(".fc-daygrid-event, .fc-event");
