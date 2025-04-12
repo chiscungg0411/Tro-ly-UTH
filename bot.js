@@ -27,11 +27,11 @@ bot.onText(/\/start/, (msg) => {
   const chatId = msg.chat.id;
   bot.sendMessage(
     chatId,
-    "👋 Xin chào **bé Nguyệt!** Mình là Trợ lý UTH, đưuọc tạo ra bởi **[Chí Cường đẹp traii](https://vochicuong.id.vn)** !! Luôn cập nhật thông tin nhanh và tiện nhất đến cho em béee :>\n" +
-    "📅 **/tuannay** - Lấy lịch học tuần này.\n" +
-    "📆 **/tuansau** - Lấy lịch học tuần sau.\n" +
-    "💰 **/congno** - Lấy thông tin công nợ.\n" +
-    "💡 **Mẹo:** Nhấn nút Menu 📋 bên cạnh để chọn lệnh nhanh hơn nha bé ơi!"
+    "👋 Xin chào 𝗯𝗲́ 𝗡𝗴𝘂𝘆𝗲̣̂𝘁! Mình là 𝗧𝗿𝗼̛̣ 𝗹𝘆́ 𝗨𝗧𝗛, đưuọc tạo ra bởi 𝗖𝗵𝗶́ 𝗖𝘂̛𝗼̛̀𝗻𝗴 𝗛𝗮𝗻𝗱𝘀𝗼𝗺𝗲 !! Luôn cập nhật thông tin nhanh và tiện nhất đến cho em béee <3\n" +
+    "📅 /𝘁𝘂𝗮𝗻𝗻𝗮𝘆 - Lấy lịch học tuần này.\n" +
+    "📆 /𝘁𝘂𝗮𝗻𝘀𝗮𝘂 - Lấy lịch học tuần sau.\n" +
+    "💰 /𝗰𝗼𝗻𝗴𝗻𝗼 - Lấy thông tin công nợ.\n" +
+    "💡 𝗠𝗲̣𝗼: Nhấn nút 𝗠𝗲𝗻𝘂 📋 bên cạnh để chọn lệnh nhanh hơn nha bé ơi!"
   );
 });
 
