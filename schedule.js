@@ -168,4 +168,50 @@ async function getSchedule(nextWeek = false) {
   }
 }
 
-module.exports = { getSchedule };
+async function getTuition() {
+  let browser;
+  try {
+    browser = await launchBrowser();
+    const page = await browser.newPage();
+
+    await login(page, process.env.UT_USERNAME, process.env.UT_PASSWORD);
+
+    await page.goto("https://portal.ut.edu.vn/tuition", {
+      waitUntil: "networkidle2",
+      timeout: 60000,
+    });
+    await page.waitForSelector("table.MuiTable-root.MuiTable-stickyHeader", { timeout: 30000 });
+    console.log("✅ Đã tải trang công nợ.");
+
+    const tuitionData = await page.evaluate(() => {
+      const rows = Array.from(
+        document.querySelectorAll("table.MuiTable-root.MuiTable-stickyHeader tbody tr")
+      );
+      const lastRow = rows[rows.length - 1]; // Dòng cuối là dòng tổng
+      const cells = lastRow.querySelectorAll("td");
+
+      return {
+        totalCredits: cells[4]?.textContent.trim() || "0", // Tổng tín chỉ
+        totalAmountDue: cells[6]?.textContent.trim() || "0 ₫", // Tổng mức nộp
+        totalDebt: cells[12]?.textContent.trim() || "0 ₫", // Tổng công nợ
+      };
+    });
+
+    // Làm sạch dữ liệu
+    const cleanedData = {
+      totalCredits: cleanText(tuitionData.totalCredits),
+      totalAmountDue: cleanText(tuitionData.totalAmountDue),
+      totalDebt: cleanText(tuitionData.totalDebt),
+    };
+
+    console.log("✅ Đã lấy và làm sạch thông tin công nợ.");
+    return cleanedData;
+  } catch (error) {
+    console.error("❌ Lỗi trong getTuition:", error.message);
+    throw error;
+  } finally {
+    if (browser) await browser.close();
+  }
+}
+
+module.exports = { getSchedule, getTuition };
