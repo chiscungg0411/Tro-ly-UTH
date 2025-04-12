@@ -1,7 +1,7 @@
 require("dotenv").config();
 const TelegramBot = require("node-telegram-bot-api");
 const express = require("express");
-const { getSchedule } = require("./schedule");
+const { getSchedule, getTuition } = require("./schedule");
 
 const token = process.env.TELEGRAM_BOT_TOKEN;
 const bot = new TelegramBot(token); // Không cần polling nữa
@@ -30,6 +30,7 @@ bot.onText(/\/start/, (msg) => {
     "👋 Xin chào! Mình là Trợ lý UTH, luôn cập nhật thông tin nhanh và tiện nhất đến cho bé Nguyệt :>.\n" +
     "📅 /tuannay - Lấy lịch học tuần này.\n" +
     "📆 /tuansau - Lấy lịch học tuần sau.\n" +
+    "💰 /congno - Lấy thông tin công nợ.\n" +
     "💡Mẹo: Nhấn nút Menu 📋 bên cạnh để chọn lệnh nhanh hơn!"
   );
 });
@@ -103,6 +104,24 @@ bot.onText(/\/tuansau/, async (msg) => {
     bot.sendMessage(chatId, message, { parse_mode: "Markdown" });
   } catch (error) {
     bot.sendMessage(chatId, `❌ Lỗi lấy lịch học: ${error.message}`);
+  }
+});
+
+// Lệnh /congno
+bot.onText(/\/congno/, async (msg) => {
+  const chatId = msg.chat.id;
+  bot.sendMessage(chatId, "💰 Đang lấy thông tin công nợ, vui lòng chờ trong giây lát... ⌛");
+
+  try {
+    const tuition = await getTuition();
+    const message = `💰 **Thông tin công nợ của bạn:**\n------------------------------------\n` +
+                    `📊 **Tổng tín chỉ:** ${tuition.totalCredits}\n` +
+                    `💸 **Tổng mức nộp:** ${tuition.totalAmountDue}\n` +
+                    `⚖️ **Tổng công nợ:** ${tuition.totalDebt}`;
+
+    bot.sendMessage(chatId, message, { parse_mode: "Markdown" });
+  } catch (error) {
+    bot.sendMessage(chatId, `❌ Lỗi lấy thông tin công nợ: ${error.message}`);
   }
 });
 
