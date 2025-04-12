@@ -119,8 +119,8 @@ bot.onText(/\/congno/, async (msg) => {
     const tuition = await getTuition();
     const message = `💰 **Thông tin công nợ của bạn:**\n------------------------------------\n` +
                     `📊 **Tổng tín chỉ:** ${tuition.totalCredits}\n` +
-                    `💸 **Tổng mức nộp:** ${tuition.totalAmountDue} VNĐ\n ` +
-                    `⚖️ **Tổng công nợ:** ${tuition.totalDebt} VNĐ\n` +
+                    `💸 **Tổng mức nộp:** ${tuition.totalAmountDue} VNĐ\n` +
+                    `👛 **Tổng công nợ:** ${tuition.totalDebt} VNĐ\n` +
                     `ℹ️ Hãy truy cập vào **[Portal UTH](https://portal.ut.edu.vn/dashboard)** để biết thêm thông tin chi tiết.`;
             
     bot.sendMessage(chatId, message, { parse_mode: "Markdown" });
