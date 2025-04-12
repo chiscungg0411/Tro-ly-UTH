@@ -78,7 +78,7 @@ bot.onText(/\/tuansau/, async (msg) => {
 
   try {
     const { schedule, week } = await getSchedule(true);
-    let message = `📆 **Lịch học tuần sau của bạn:**\n------------------------------------\n`;
+    let message = `📆 **Lịch học tuần sau của em bé:**\n------------------------------------\n`;
 
     const days = Object.keys(schedule);
     days.forEach((day, index) => {
@@ -86,7 +86,7 @@ bot.onText(/\/tuansau/, async (msg) => {
       const formattedDay = `${thu} - ${ngay}`.trim();
       
       const classes = schedule[day];
-      message += `⭐ **${formattedDay}:**\n`;
+      message += `🌙 **${formattedDay}:**\n`;
       if (classes.length) {
         classes.forEach((c) => {
           message += `⏰ **${c.shift}**\n` +
@@ -114,10 +114,10 @@ bot.onText(/\/congno/, async (msg) => {
 
   try {
     const tuition = await getTuition();
-    const message = `💰 **Thông tin công nợ của bạn:**\n------------------------------------\n` +
-                    `📊 **Tổng tín chỉ:** ${tuition.totalCredits}\n` +
-                    `💸 **Tổng mức nộp:** ${tuition.totalAmountDue}\n` +
-                    `⚖️ **Tổng công nợ:** ${tuition.totalDebt}\n` +
+    const message = `💰 **Thông tin công nợ của em bé:**\n------------------------------------\n` +
+                    `📊 **Tổng tín chỉ:** ${tuition.totalCredits} tín chỉ\n` +
+                    `💸 **Tổng mức nộp:** ${tuition.totalAmountDue} VNĐ\n` +
+                    `⚖️ **Tổng công nợ:** ${tuition.totalDebt} VNĐ\n` +
                     `ℹ️ Hãy truy cập vào **[Portal UTH](https://portal.ut.edu.vn/dashboard)** để xem chi tiết hơn nha em béee`;
 
     bot.sendMessage(chatId, message, { parse_mode: "Markdown" });
