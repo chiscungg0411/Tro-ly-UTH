@@ -183,6 +183,20 @@ async function getTuition() {
     await page.waitForSelector("table.MuiTable-root.MuiTable-stickyHeader", { timeout: 30000 });
     console.log("✅ Đã tải trang công nợ.");
 
+    // Chọn giá trị "Tất cả" trong dropdown
+    console.log("🔄 Đang chọn giá trị 'Tất cả' trong dropdown...");
+    await page.waitForSelector("div.MuiSelect-select.MuiSelect-outlined", { timeout: 10000 });
+    await page.click("div.MuiSelect-select.MuiSelect-outlined");
+    await page.waitForSelector("ul[role='listbox'] li", { timeout: 10000 });
+    await page.evaluate(() => {
+      const options = Array.from(document.querySelectorAll("ul[role='listbox'] li"));
+      const allOption = options.find((option) => option.textContent.trim() === "Tất cả");
+      if (allOption) allOption.click();
+    });
+    await new Promise(resolve => setTimeout(resolve, 2000)); // Chờ bảng tải lại
+    await page.waitForSelector("table.MuiTable-root.MuiTable-stickyHeader", { timeout: 30000 });
+    console.log("✅ Đã chọn 'Tất cả' và bảng đã tải lại.");
+
     const tuitionData = await page.evaluate(() => {
       const rows = Array.from(
         document.querySelectorAll("table.MuiTable-root.MuiTable-stickyHeader tbody tr")
