@@ -40,7 +40,7 @@ async function login(page, username, password, retries = 3) {
   for (let attempt = 1; attempt <= retries; attempt++) {
     try {
       console.log(`🔑 Thử đăng nhập lần ${attempt}...`);
-      await page.goto("[invalid url, do not cite] {
+      await page.goto("https://portal.ut.edu.vn/", {
         waitUntil: "networkidle2",
         timeout: 60000,
       });
@@ -79,7 +79,7 @@ async function getSchedule(nextWeek = false) {
 
     await login(page, process.env.UT_USERNAME, process.env.UT_PASSWORD);
 
-    await page.goto("[invalid url, do not cite] {
+    await page.goto("https://portal.ut.edu.vn/calendar", {
       waitUntil: "networkidle2",
       timeout: 60000,
     });
@@ -176,7 +176,7 @@ async function getTuition() {
 
     await login(page, process.env.UT_USERNAME, process.env.UT_PASSWORD);
 
-    await page.goto("[invalid url, do not cite] {
+    await page.goto("https://portal.ut.edu.vn/tuition", {
       waitUntil: "networkidle2",
       timeout: 60000,
     });
@@ -244,57 +244,4 @@ async function getTuition() {
   }
 }
 
-async function getProgress() {
-  let browser;
-  try {
-    browser = await launchBrowser();
-    const page = await browser.newPage();
-
-    await login(page, process.env.UT_USERNAME, process.env.UT_PASSWORD);
-
-    await page.goto('https://portal.ut.edu.vn/dashboard', {
-      waitUntil: 'networkidle2',
-      timeout: 60000,
-    });
-
-    // Wait for the progress section to load
-    await page.waitForSelector('div.MuiPaper-root.MuiPaper-elevation.MuiPaper-rounded.MuiPaper-elevation3', { timeout: 30000 });
-
-    // Find the progress text
-    const progressText = await page.evaluate(() => {
-      const progressDiv = document.querySelector('div.MuiPaper-root.MuiPaper-elevation.MuiPaper-rounded.MuiPaper-elevation3');
-      if (progressDiv) {
-        const pElement = progressDiv.querySelector('p.MuiTypography-root.MuiTypography-body1.css-c1fejl');
-        if (pElement) {
-          return pElement.textContent.trim();
-        }
-      }
-      return null;
-    });
-
-    if (!progressText) {
-      throw new Error('Không tìm thấy thông tin tiến độ trên dashboard');
-    }
-
-    // Parse the text to get achieved and total credits
-    const match = progressText.match(/Đã đạt: (\d+)\/(\d+)/);
-    if (match && match[1] && match[2]) {
-      const achieved = parseInt(match[1]);
-      const total = parseInt(match[2]);
-      if (!Number.isNaN(achieved) && !Number.isNaN(total)) {
-        return { achieved, total };
-      } else {
-        throw new Error(`Dữ liệu không hợp lệ trong thông tin tiến độ: ${progressText}`);
-      }
-    } else {
-      throw new Error(`Không thể phân tích thông tin tiến độ: ${progressText}`);
-    }
-  } catch (error) {
-    console.error('Lỗi trong getProgress:', error);
-    throw error;
-  } finally {
-    if (browser) await browser.close();
-  }
-}
-
-module.exports = { getSchedule, getTuition, getProgress };
+module.exports = { getSchedule, getTuition };
