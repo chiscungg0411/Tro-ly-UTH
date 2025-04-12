@@ -100,7 +100,7 @@ bot.onText(/\/tuannay/, async (msg) => {
 
     bot.sendMessage(chatId, message, { parse_mode: "Markdown" });
   } catch (error) {
-    bot.sendMessage(chatId, `❌ Lỗi lấy lịch học: ${error.message}`);
+    bot.sendMessage(chatId, `📅 Không tìm thấy lịch học tuần này: ${error.message}`);
   }
 });
 
@@ -128,7 +128,7 @@ bot.onText(/\/tuansau/, async (msg) => {
 
     bot.sendMessage(chatId, message, { parse_mode: "Markdown" });
   } catch (error) {
-    bot.sendMessage(chatId, `❌ Lỗi lấy lịch học: ${error.message}`);
+    bot.sendMessage(chatId, `📆 Không tìm thấy lịch học tuần sau: ${error.message}`);
   }
 });
 
