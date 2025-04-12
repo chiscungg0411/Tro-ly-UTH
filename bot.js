@@ -1,4 +1,3 @@
-// bot.js
 require("dotenv").config();
 const TelegramBot = require("node-telegram-bot-api");
 const express = require("express");
@@ -90,7 +89,7 @@ bot.onText(/\/tuannay/, async (msg) => {
       hasSchedule = true;
       message += `📌 **${date}**:\n`;
       events.forEach((event) => {
-        message += `   ⏰ ${event.time}: ${event.title}\n`;
+        message += `   ⏰ ${event.time}: ${event.title} (${event.room})\n`;
       });
       message += "\n";
     }
@@ -101,7 +100,7 @@ bot.onText(/\/tuannay/, async (msg) => {
 
     bot.sendMessage(chatId, message, { parse_mode: "Markdown" });
   } catch (error) {
-    bot.sendMessage(chatId, `❌ Lỗi lấy lịch học: ${error.message}`);
+    bot.sendMessage(chatId, `📅 Không tìm thấy lịch học tuần này: ${error.message}`);
   }
 });
 
@@ -118,7 +117,7 @@ bot.onText(/\/tuansau/, async (msg) => {
       hasSchedule = true;
       message += `📌 **${date}**:\n`;
       events.forEach((event) => {
-        message += `   ⏰ ${event.time}: ${event.title}\n`;
+        message += `   ⏰ ${event.time}: ${event.title} (${event.room})\n`;
       });
       message += "\n";
     }
@@ -129,7 +128,7 @@ bot.onText(/\/tuansau/, async (msg) => {
 
     bot.sendMessage(chatId, message, { parse_mode: "Markdown" });
   } catch (error) {
-    bot.sendMessage(chatId, `❌ Lỗi lấy lịch học: ${error.message}`);
+    bot.sendMessage(chatId, `📆 Không tìm thấy lịch học tuần sau: ${error.message}`);
   }
 });
 
