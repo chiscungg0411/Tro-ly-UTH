@@ -51,61 +51,71 @@ async function getSchedule(launchBrowser, nextWeek = false) {
 
     await login(page, process.env.UT_USERNAME, process.env.UT_PASSWORD);
 
-    await page.goto("https://portal.ut.edu.vn/calendar", { // Cập nhật URL
+    await page.goto("https://portal.ut.edu.vn/calendar", {
       waitUntil: "networkidle2",
       timeout: 60000,
     });
     console.log("DEBUG: URL hiện tại sau khi goto calendar:", page.url());
 
-    // Chờ selector chung cho FullCalendar hoặc bảng lịch
-    await page.waitForSelector(".fc-daygrid-body, .fc-multimonth-month, table", {
+    // Chờ bất kỳ phần tử nào có thể chứa lịch (table, div, hoặc FullCalendar)
+    await page.waitForSelector("table, .fc, .calendar, div[data-date]", {
       timeout: 60000,
     });
     console.log("✅ Đã tải trang lịch học.");
 
     // Log nội dung trang để debug
     const pageContent = await page.content();
-    console.log("DEBUG: Nội dung trang lịch (500 ký tự đầu):", pageContent.slice(0, 500));
+    console.log("DEBUG: Nội dung trang lịch (1000 ký tự đầu):", pageContent.slice(0, 1000));
 
-    const weekOptions = await page.$$eval(".fc-multimonth-title, .fc-col-header-cell", (elements) =>
-      elements.map((el) => el.textContent.trim())
-    );
-    const currentWeekIndex = nextWeek ? 1 : 0;
+    // Kiểm tra xem có FullCalendar không
+    const hasFullCalendar = await page.evaluate(() => !!document.querySelector(".fc"));
+    console.log("DEBUG: Có FullCalendar trên trang:", hasFullCalendar);
 
-    if (weekOptions.length <= currentWeekIndex) {
-      throw new Error("Không có lịch tuần sau để lấy.");
-    }
+    const scheduleData = await page.evaluate((isNextWeek) => {
+      let schedule = {};
 
-    if (nextWeek) {
-      await page.click(".fc-next-button");
-      await new Promise((resolve) => setTimeout(resolve, 3000));
-      console.log("✅ Đã chuyển sang tuần sau.");
-    }
+      // Thử lấy từ FullCalendar
+      const calendar = document.querySelector(".fc");
+      if (calendar) {
+        const weekElements = document.querySelectorAll(".fc-daygrid-day, .fc-multimonth-month");
+        const targetWeek = isNextWeek && weekElements.length > 1 ? weekElements[1] : weekElements[0];
+        if (!targetWeek) return { error: "Không tìm thấy tuần yêu cầu." };
 
-    const scheduleData = await page.evaluate((weekIndex) => {
-      const weekElements = document.querySelectorAll(".fc-multimonth-month, .fc-daygrid-day");
-      const targetWeek = weekElements[weekIndex] || weekElements[0];
-      if (!targetWeek) return { error: "Không tìm thấy tuần yêu cầu." };
+        const events = targetWeek.querySelectorAll(".fc-daygrid-event, .fc-event");
+        events.forEach((event) => {
+          const titleEl = event.querySelector(".fc-event-title");
+          const timeEl = event.querySelector(".fc-event-time");
+          if (titleEl && timeEl) {
+            const title = titleEl.textContent.trim();
+            const time = timeEl.textContent.trim();
+            const dateEl = event.closest(".fc-daygrid-day");
+            const date = dateEl ? dateEl.getAttribute("data-date") || "Unknown Date" : "Unknown Date";
 
-      const events = targetWeek.querySelectorAll(".fc-daygrid-event, .fc-event");
-      const schedule = {};
+            if (!schedule[date]) schedule[date] = [];
+            schedule[date].push({ time, title });
+          }
+        });
+      } else {
+        // Fallback: Thử lấy từ bảng hoặc div nếu không phải FullCalendar
+        const events = document.querySelectorAll("div[data-date], tr, .event");
+        events.forEach((event) => {
+          const title = event.querySelector(".event-title, td:nth-child(2)")?.textContent.trim();
+          const time = event.querySelector(".event-time, td:nth-child(1)")?.textContent.trim();
+          const date = event.getAttribute("data-date") || event.querySelector("td")?.textContent.trim() || "Unknown Date";
 
-      events.forEach((event) => {
-        const titleEl = event.querySelector(".fc-event-title");
-        const timeEl = event.querySelector(".fc-event-time");
-        if (titleEl && timeEl) {
-          const title = titleEl.textContent.trim();
-          const time = timeEl.textContent.trim();
-          const dateEl = event.closest(".fc-daygrid-day");
-          const date = dateEl ? dateEl.getAttribute("data-date") || "Unknown Date" : "Unknown Date";
+          if (title && time) {
+            if (!schedule[date]) schedule[date] = [];
+            schedule[date].push({ time, title });
+          }
+        });
+      }
 
-          if (!schedule[date]) schedule[date] = [];
-          schedule[date].push({ time, title });
-        }
-      });
+      if (Object.keys(schedule).length === 0) {
+        return { error: isNextWeek ? "Không có lịch tuần sau." : "Không có lịch tuần này." };
+      }
 
       return schedule;
-    }, currentWeekIndex);
+    }, nextWeek);
 
     if (scheduleData.error) throw new Error(scheduleData.error);
 
