@@ -27,12 +27,13 @@ bot.onText(/\/start/, (msg) => {
   const chatId = msg.chat.id;
   bot.sendMessage(
     chatId,
-    "🤖 Chào em bé! Mình là Trợ lý UTH, được tạo ra bởi anh Cường đẹp trai! Luôn cập nhật thông tin nhanh và tiện nhất đến cho riêng bé Nguyệt :>\n" +
-    "📅 /tuannay: Lấy lịch học tuần này\n" +
-    "📅 /tuansau: Lấy lịch học tuần sau\n" +
-    "💰 /congno: Lấy thông tin công nợ\n" +
-    "🏁 /tiendo: Lấy tiến độ học tập\n" +
-    "Mẹo: Nhấn nút Menu bên cạnh để chọn lệnh nhanh hơn nha em bé!"
+    "Xin chào! Mình là Trợ lý UTH,\n" +
+    "luôn cập nhật thông tin nhanh và tiện nhất đến cho bé Nguyệt :>.\n" +
+    "- /tuannay: Lấy lịch học tuần này\n" +
+    "- /tuansau: Lấy lịch học tuần sau\n" +
+    "- /congno: Lấy thông tin công nợ\n" +
+    "- /tiendo: Lấy tiến độ học tập\n" +
+    "Mẹo: Nhấn nút Menu bên cạnh để chọn lệnh nhanh hơn!"
   );
 });
 
@@ -40,33 +41,32 @@ bot.onText(/\/start/, (msg) => {
 bot.onText(/\/tuannay/, async (msg) => {
   const chatId = msg.chat.id;
   bot.sendMessage(chatId,
-    "Đang lấy lịch học tuần này, em bé vui lòng chờ trong giây lát nha... ⌛"
+    "Đang lấy lịch học tuần này,\nvui lòng chờ trong giây lát... ⌛"
   );
 
   try {
     const { schedule, week } = await getSchedule();
-    let message = "Lịch học tuần này của em bé:\n---------------------------------\n";
+    let message = "Lịch học tuần này của bạn:\n";
     const days = Object.keys(schedule);
     for (let day of days) {
       const [thu, ngay] = day.split(/(\d{2}\/\d{2}\/\d{4})/);
       const formattedDay = `${thu} - ${ngay}`.trim();
-      message += `⭐**${formattedDay}:**\n`;
+      message += `\n**${formattedDay}:**\n`;
       const classes = schedule[day];
       if (classes.length) {
         for (let c of classes) {
           message +=
-            `⏰ **Ca học:** ${c.shift}\n` +
-            `📖 **Môn học:** ${c.subject}\n` +
-            `📅 **Tiết:** ${c.periods}\n` +
-            `🕛 **Giờ bắt đầu:** ${c.startTime}\n` +
-            `📍 **Phòng học:** ${c.room}\n\n` +
-            `ℹ️ Hãy truy cập vào [Portal UTH](https://portal.ut.edu.vn/dashboard) để biết thêm thông tin chi tiết nha em bé.`;
+            `• **Ca học:** ${c.shift}\n` +
+            `• Môn học: ${c.subject}\n` +
+            `• Tiết: ${c.periods}\n` +
+            `• Giờ bắt đầu: ${c.startTime}\n` +
+            `• Phòng học: ${c.room}\n\n`;
         }
       } else {
-        message += "Không có lịch học đâu em bé\n";
+        message += "Không có lịch\n";
       }
     }
-    message += `ℹ️ Hãy truy cập vào [Portal UTH](https://portal.ut.edu.vn/dashboard) để biết thêm thông tin chi tiết nha em bé.`;
+    message += `ℹ️ Hãy truy cập vào [Portal UTH](https://portal.ut.edu.vn/dashboard) để biết thêm thông tin chi tiết.`;
     bot.sendMessage(chatId,
       message,
       { parse_mode: "Markdown" }
@@ -82,12 +82,12 @@ bot.onText(/\/tuannay/, async (msg) => {
 bot.onText(/\/tuansau/, async (msg) => {
   const chatId = msg.chat.id;
   bot.sendMessage(chatId,
-    "Đang lấy lịch học tuần sau, em bé vui lòng chờ trong giây lát nha... ⌛"
+    "Đang lấy lịch học tuần sau,\nvui lòng chờ trong giây lát... ⌛"
   );
 
   try {
     const { schedule, week } = await getSchedule(true);
-    let message = "🌙 **Lịch học tuần sau của em bé:**\n---------------------------------\n";
+    let message = "Lịch học tuần sau của bạn:\n";
     const days = Object.keys(schedule);
     for (let day of days) {
       const [thu, ngay] = day.split(/(\d{2}\/\d{2}\/\d{4})/);
@@ -97,18 +97,17 @@ bot.onText(/\/tuansau/, async (msg) => {
       if (classes.length) {
         for (let c of classes) {
           message +=
-            `⏰ **Ca học:** ${c.shift}\n` +
-            `📖 **Môn học:** ${c.subject}\n` +
-            `📅 **Tiết:** ${c.periods}\n` +
-            `🕛 **Giờ bắt đầu:** ${c.startTime}\n` +
-            `📍 **Phòng học:** ${c.room}\n\n` +
-            `ℹ️ Hãy truy cập vào [Portal UTH](https://portal.ut.edu.vn/dashboard) để biết thêm thông tin chi tiết nha em bé.`;
+            `• **Ca học:** ${c.shift}\n` +
+            `• Môn học: ${c.subject}\n` +
+            `• Tiết: ${c.periods}\n` +
+            `• Giờ bắt đầu: ${c.startTime}\n` +
+            `• Phòng học: ${c.room}\n\n`;
         }
       } else {
-        message += "Không có lịch học rồi em bé ơi\n";
+        message += "Không có lịch\n";
       }
     }
-    message += `ℹ️ Hãy truy cập vào [Portal UTH](https://portal.ut.edu.vn/dashboard) để biết thêm thông tin chi tiết nha em bé.`;
+    message += `ℹ️ Hãy truy cập vào [Portal UTH](https://portal.ut.edu.vn/dashboard) để biết thêm thông tin chi tiết.`;
     bot.sendMessage(chatId,
       message,
       { parse_mode: "Markdown" }
@@ -124,16 +123,16 @@ bot.onText(/\/tuansau/, async (msg) => {
 bot.onText(/\/congno/, async (msg) => {
   const chatId = msg.chat.id;
   bot.sendMessage(chatId,
-    "Đang lấy thông tin công nợ, em bé vui lòng chờ trong giây lát nha... ⌛"
+    "Đang lấy thông tin công nợ,\nvui lòng chờ trong giây lát... ⌛"
   );
 
   try {
     const tuition = await getTuition();
-    let message = "Thông tin công nợ của em bé:\n---------------------------------\n";
-    message += `📊 **Tổng tín chỉ:** ${tuition.totalCredits} tín chỉ\n`;
-    message += `💸 **Tổng mức nộp:** ${tuition.totalAmountDue} VNĐ\n`;
-    message += `⚖️ **Tổng công nợ:** ${tuition.totalDebt} VNĐ\n`;
-    message += `ℹ️ Hãy truy cập vào [Portal UTH](https://portal.ut.edu.vn/dashboard) để biết thêm thông tin chi tiết nha em bé.`;
+    let message = "Thông tin công nợ của bạn:\n";
+    message += `Tổng tín chỉ: ${tuition.totalCredits}\n`;
+    message += `Tổng mức nộp: ${tuition.totalAmountDue}\n`;
+    message += `Tổng công nợ: ${tuition.totalDebt}\n`;
+    message += `ℹ️ Hãy truy cập vào [Portal UTH](https://portal.ut.edu.vn/dashboard) để biết thêm thông tin chi tiết.`;
     bot.sendMessage(chatId,
       message,
       { parse_mode: "Markdown" }
@@ -149,16 +148,16 @@ bot.onText(/\/congno/, async (msg) => {
 bot.onText(/\/tiendo/, async (msg) => {
   const chatId = msg.chat.id;
   bot.sendMessage(chatId,
-    "🏁 Đang lấy tiến độ học tập, em bé vui lòng chờ trong giây lát nha... ⌛"
+    "🏁 Đang lấy tiến độ học tập,\nvui lòng chờ trong giây lát... ⌛"
   );
 
   try {
     const { achieved, total } = await getProgress();
-    let message = "🏁 Tiến độ học tập của em bé:\n---------------------------------\n";
-    message += `📚 Tín chỉ đã đạt: ${achieved} tín chỉ\n`;
-    message += `📈 Tín chỉ tổng cộng: ${total} tín chỉ\n`;
+    let message = "🏁 Tiến độ học tập của bạn:\n";
+    message += `📚 Tín chỉ đã đạt: ${achieved}\n`;
+    message += `📈 Tín chỉ tổng cộng: ${total}\n`;
     message += `📊 Tiến độ: ${((achieved / total) * 100).toFixed(2)}%\n`;
-    message += `ℹ️ Hãy truy cập vào [Portal UTH](https://portal.ut.edu.vn/dashboard) để biết thêm thông tin chi tiết nha em bé.`;
+    message += `ℹ️ Hãy truy cập vào [Portal UTH](https://portal.ut.edu.vn/dashboard) để biết thêm thông tin chi tiết.`;
     bot.sendMessage(chatId,
       message,
       { parse_mode: "Markdown" }
