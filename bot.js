@@ -1,3 +1,4 @@
+// bot.js
 require("dotenv").config();
 const TelegramBot = require("node-telegram-bot-api");
 const express = require("express");
@@ -100,7 +101,7 @@ bot.onText(/\/tuannay/, async (msg) => {
 
     bot.sendMessage(chatId, message, { parse_mode: "Markdown" });
   } catch (error) {
-    bot.sendMessage(chatId, `📅 Không tìm thấy lịch học tuần này: ${error.message}`);
+    bot.sendMessage(chatId, `❌ Lỗi lấy lịch học: ${error.message}`);
   }
 });
 
@@ -128,7 +129,7 @@ bot.onText(/\/tuansau/, async (msg) => {
 
     bot.sendMessage(chatId, message, { parse_mode: "Markdown" });
   } catch (error) {
-    bot.sendMessage(chatId, `📆 Không tìm thấy lịch học tuần sau: ${error.message}`);
+    bot.sendMessage(chatId, `❌ Lỗi lấy lịch học: ${error.message}`);
   }
 });
 
@@ -137,13 +138,13 @@ bot.onText(/\/congno/, async (msg) => {
   bot.sendMessage(chatId, "💰 Đang lấy thông tin công nợ, vui lòng chờ trong giây lát... ⌛");
 
   try {
-    const tuition = await getTuition(launchBrowser);
+    const { totalCredits, totalTuition, totalDebt } = await getTuition(launchBrowser);
     const message =
       `💰 **Thông tin công nợ của bạn:**\n` +
       `------------------------------------\n` +
-      `📚 **Tổng tín chỉ:** ${tuition.totalCredits}\n` +
-      `💸 **Tổng học phí:** ${tuition.totalTuition}\n` +
-      `📉 **Công nợ:** ${tuition.totalDebt}\n` +
+      `📚 **Tổng tín chỉ:** ${totalCredits}\n` +
+      `💸 **Tổng học phí:** ${totalTuition}\n` +
+      `📉 **Công nợ:** ${totalDebt}\n` +
       `------------------------------------\n` +
       `✅ Dữ liệu được lấy từ tab "Học phí ngành" với tùy chọn "Tất cả".`;
 
