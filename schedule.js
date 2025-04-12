@@ -219,9 +219,9 @@ async function getTuition() {
       console.log("Số cột trong dòng tổng:", cells.length);
 
       return {
-        totalCredits: cells[4]?.textContent.trim() || "0", // Cột TC
-        totalAmountDue: cells[6]?.textContent.trim() || "0 ₫", // Cột Mức nộp
-        totalDebt: cells[12]?.textContent.trim() || "0 ₫", // Cột Công nợ
+        totalCredits: cells[1]?.textContent.trim() || "0", // Cột TC (column 4, adjusted for colspan)
+        totalAmountDue: cells[3]?.textContent.trim() || "0 ₫", // Cột Mức nộp (column 6)
+        totalDebt: cells[7]?.textContent.trim() || "0 ₫", // Cột Công nợ (column 12)
       };
     });
 
