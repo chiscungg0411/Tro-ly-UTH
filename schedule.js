@@ -193,7 +193,7 @@ async function getTuition() {
       const allOption = options.find((option) => option.textContent.trim() === "Tất cả");
       if (allOption) allOption.click();
     });
-    await new Promise(resolve => setTimeout(resolve, 4000)); // Chờ 4 giây để bảng tải lại
+    await new Promise(resolve => setTimeout(resolve, 5000)); // Chờ 5 giây để bảng tải lại
     await page.waitForSelector("table.MuiTable-root.MuiTable-stickyHeader", { timeout: 30000 });
     console.log("✅ Đã chọn 'Tất cả' và bảng đã tải lại.");
 
@@ -204,10 +204,14 @@ async function getTuition() {
       const lastRow = rows[rows.length - 1]; // Dòng cuối là dòng tổng
       const cells = lastRow.querySelectorAll("td");
 
+      // Log để kiểm tra dữ liệu
+      console.log("Số hàng trong bảng:", rows.length);
+      console.log("Nội dung dòng tổng:", Array.from(cells).map(c => c.textContent.trim()));
+
       return {
-        totalCredits: cells[4]?.textContent.trim() || "0", // Tổng tín chỉ
-        totalAmountDue: cells[6]?.textContent.trim() || "0 ₫", // Tổng mức nộp
-        totalDebt: cells[12]?.textContent.trim() || "0 ₫", // Tổng công nợ
+        totalCredits: cells[4]?.textContent.trim() || "0", // Tổng tín chỉ (thử cột 5)
+        totalAmountDue: cells[6]?.textContent.trim() || "0 ₫", // Tổng mức nộp (cột 7, đã đúng)
+        totalDebt: cells[12]?.textContent.trim() || "0 ₫", // Tổng công nợ (thử cột 13)
       };
     });
 
@@ -218,7 +222,7 @@ async function getTuition() {
       totalDebt: cleanText(tuitionData.totalDebt),
     };
 
-    console.log("✅ Đã lấy và làm sạch thông tin công nợ.");
+    console.log("✅ Đã lấy và làm sạch thông tin công nợ:", cleanedData);
     return cleanedData;
   } catch (error) {
     console.error("❌ Lỗi trong getTuition:", error.message);
