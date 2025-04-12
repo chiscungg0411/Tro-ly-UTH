@@ -56,7 +56,7 @@ bot.onText(/\/tuannay/, async (msg) => {
         for (let c of classes) {
           message +=
             `⏰ **Ca học:** ${c.shift}\n` +
-            `📖 **Môn học** ${c.subject}\n` +
+            `📖 **Môn học:** ${c.subject}\n` +
             `📅 **Tiết:** ${c.periods}\n` +
             `🕛 **Giờ bắt đầu:** ${c.startTime}\n` +
             `📍 **Phòng học:** ${c.room}\n\n` +
