@@ -27,22 +27,22 @@ bot.onText(/\/start/, (msg) => {
   const chatId = msg.chat.id;
   bot.sendMessage(
     chatId,
-    "👋 Xin chào! Mình là Trợ lý UTH, luôn cập nhật thông tin nhanh và tiện nhất đến cho bé Nguyệt :>.\n" +
-    "📅 /tuannay - Lấy lịch học tuần này.\n" +
-    "📆 /tuansau - Lấy lịch học tuần sau.\n" +
-    "💰 /congno - Lấy thông tin công nợ.\n" +
-    "💡Mẹo: Nhấn nút Menu 📋 bên cạnh để chọn lệnh nhanh hơn!"
+    "👋 Xin chào **bé Nguyệt!** Mình là Trợ lý UTH, đưuọc tạo ra bởi **[Chí Cường đẹp traii](https://vochicuong.id.vn)** !! Luôn cập nhật thông tin nhanh và tiện nhất đến cho em béee :>\n" +
+    "📅 **/tuannay** - Lấy lịch học tuần này.\n" +
+    "📆 **/tuansau** - Lấy lịch học tuần sau.\n" +
+    "💰 **/congno** - Lấy thông tin công nợ.\n" +
+    "💡 **Mẹo:** Nhấn nút Menu 📋 bên cạnh để chọn lệnh nhanh hơn nha bé ơi!"
   );
 });
 
 // Lệnh /tuannay
 bot.onText(/\/tuannay/, async (msg) => {
   const chatId = msg.chat.id;
-  bot.sendMessage(chatId, "📅 Đang lấy lịch học tuần này, vui lòng chờ trong giây lát... ⌛");
+  bot.sendMessage(chatId, "📅 Đang lấy lịch học tuần này, vui lòng chờ trong giây lát nha bé ơi... ⌛");
 
   try {
     const { schedule, week } = await getSchedule();
-    let message = `📅 **Lịch học tuần này của bạn:**\n------------------------------------\n`;
+    let message = `📅 **Lịch học tuần này của em bé:**\n------------------------------------\n`;
 
     const days = Object.keys(schedule);
     days.forEach((day, index) => {
@@ -74,7 +74,7 @@ bot.onText(/\/tuannay/, async (msg) => {
 // Lệnh /tuansau
 bot.onText(/\/tuansau/, async (msg) => {
   const chatId = msg.chat.id;
-  bot.sendMessage(chatId, "📆 Đang lấy lịch học tuần sau, vui lòng chờ trong giây lát... ⌛");
+  bot.sendMessage(chatId, "📆 Đang lấy lịch học tuần sau, vui lòng chờ trong giây lát nha bé ơi... ⌛");
 
   try {
     const { schedule, week } = await getSchedule(true);
@@ -110,14 +110,15 @@ bot.onText(/\/tuansau/, async (msg) => {
 // Lệnh /congno
 bot.onText(/\/congno/, async (msg) => {
   const chatId = msg.chat.id;
-  bot.sendMessage(chatId, "💰 Đang lấy thông tin công nợ, vui lòng chờ trong giây lát... ⌛");
+  bot.sendMessage(chatId, "💰 Đang lấy thông tin công nợ, vui lòng chờ trong giây lát nha bé ơi... ⌛");
 
   try {
     const tuition = await getTuition();
     const message = `💰 **Thông tin công nợ của bạn:**\n------------------------------------\n` +
                     `📊 **Tổng tín chỉ:** ${tuition.totalCredits}\n` +
                     `💸 **Tổng mức nộp:** ${tuition.totalAmountDue}\n` +
-                    `⚖️ **Tổng công nợ:** ${tuition.totalDebt}`;
+                    `⚖️ **Tổng công nợ:** ${tuition.totalDebt}\n` +
+                    `ℹ️ Hãy truy cập vào **[Portal UTH](https://portal.ut.edu.vn/dashboard)** để xem chi tiết hơn nha em béee`;
 
     bot.sendMessage(chatId, message, { parse_mode: "Markdown" });
   } catch (error) {
