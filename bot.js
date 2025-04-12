@@ -4,10 +4,25 @@ const express = require("express");
 const { getSchedule } = require("./schedule");
 
 const token = process.env.TELEGRAM_BOT_TOKEN;
-const bot = new TelegramBot(token, { polling: true });
+const bot = new TelegramBot(token); // Không cần polling nữa
 const app = express();
 app.use(express.json());
 
+// Webhook endpoint để Telegram gửi cập nhật
+app.post(`/bot${token}`, (req, res) => {
+  bot.processUpdate(req.body); // Xử lý cập nhật từ Telegram
+  res.sendStatus(200); // Phản hồi Telegram với mã 200
+});
+
+// Thiết lập webhook khi server khởi động
+const webhookUrl = process.env.WEBHOOK_URL || `https://your-domain.com/bot${token}`;
+bot.setWebHook(webhookUrl).then(() => {
+  console.log(`✅ Webhook được thiết lập tại: ${webhookUrl}`);
+}).catch((error) => {
+  console.error("❌ Lỗi thiết lập webhook:", error.message);
+});
+
+// Lệnh /start
 bot.onText(/\/start/, (msg) => {
   const chatId = msg.chat.id;
   bot.sendMessage(
@@ -19,6 +34,7 @@ bot.onText(/\/start/, (msg) => {
   );
 });
 
+// Lệnh /tuannay
 bot.onText(/\/tuannay/, async (msg) => {
   const chatId = msg.chat.id;
   bot.sendMessage(chatId, "📅 Đang lấy lịch học tuần này, vui lòng chờ trong giây lát... ⌛");
@@ -54,6 +70,7 @@ bot.onText(/\/tuannay/, async (msg) => {
   }
 });
 
+// Lệnh /tuansau
 bot.onText(/\/tuansau/, async (msg) => {
   const chatId = msg.chat.id;
   bot.sendMessage(chatId, "📆 Đang lấy lịch học tuần sau, vui lòng chờ trong giây lát... ⌛");
@@ -89,17 +106,15 @@ bot.onText(/\/tuansau/, async (msg) => {
   }
 });
 
+// Route để kiểm tra server
 app.get("/ping", (req, res) => {
   console.log("🏓 Chatbot được đánh thức bởi cron-job.org!");
   res.status(200).send("Bot is alive!");
 });
 
+// Khởi động server
 const PORT = process.env.PORT || 10001;
 app.listen(PORT, () => {
   console.log(`Server chạy trên port ${PORT}`);
-  console.log("🤖 Bot Telegram đang hoạt động...");
-});
-
-bot.on("polling_error", (error) => {
-  console.error("❌ Polling error:", error.message);
+  console.log("🤖 Bot Telegram đang hoạt động với webhook...");
 });
