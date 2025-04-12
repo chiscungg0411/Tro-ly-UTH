@@ -193,7 +193,7 @@ async function getTuition() {
       const allOption = options.find((option) => option.textContent.trim() === "Tất cả");
       if (allOption) allOption.click();
     });
-    await new Promise(resolve => setTimeout(resolve, 2000)); // Chờ bảng tải lại
+    await new Promise(resolve => setTimeout(resolve, 4000)); // Chờ 4 giây để bảng tải lại
     await page.waitForSelector("table.MuiTable-root.MuiTable-stickyHeader", { timeout: 30000 });
     console.log("✅ Đã chọn 'Tất cả' và bảng đã tải lại.");
 
