@@ -1,4 +1,3 @@
-// schedule.js
 function cleanText(text) {
   const validPattern = /[A-Za-zÀ-ỹ0-9\s/:.\-₫]/; // Thêm ₫ để giữ đơn vị tiền
   return Array.from(text)
@@ -50,52 +49,83 @@ async function getSchedule(launchBrowser, nextWeek = false) {
 
     await login(page, process.env.UT_USERNAME, process.env.UT_PASSWORD);
 
-    await page.goto("https://portal.ut.edu.vn/schedule", {
+    await page.goto("https://portal.ut.edu.vn/calendar", {
       waitUntil: "networkidle2",
       timeout: 60000,
     });
-    await page.waitForSelector("#schedule-grid", { timeout: 30000 });
+    console.log("DEBUG: URL hiện tại sau khi goto calendar:", page.url());
+
+    // Chờ bảng lịch học
+    await page.waitForSelector(".MuiTable-root", { timeout: 60000 });
     console.log("✅ Đã tải trang lịch học.");
 
-    const weekOptions = await page.$$eval(".fc-multimonth-title", (elements) =>
-      elements.map((el) => el.textContent.trim())
-    );
-    const currentWeekIndex = nextWeek ? 1 : 0;
+    // Log nội dung trang để debug
+    const pageContent = await page.content();
+    console.log("DEBUG: Nội dung trang lịch (1000 ký tự đầu):", pageContent.slice(0, 1000));
 
-    if (weekOptions.length <= currentWeekIndex) {
-      throw new Error("Không có lịch tuần sau để lấy.");
-    }
-
+    // Chuyển sang tuần sau nếu cần
     if (nextWeek) {
-      await page.click(".fc-next-button");
-      await new Promise((resolve) => setTimeout(resolve, 2000)); // Thay waitForTimeout
-      console.log("✅ Đã chuyển sang tuần sau.");
+      await page
+        .click('button[aria-label*="ArrowForwardIcon"], button:has(svg[data-testid="ArrowForwardIcon"])', {
+          timeout: 5000,
+        })
+        .catch(() => {
+          console.log("DEBUG: Không tìm thấy nút chuyển tuần, bỏ qua.");
+        });
+      await new Promise((resolve) => setTimeout(resolve, 2000));
+      console.log("✅ Đã chuyển sang tuần sau (hoặc thử chuyển).");
+      // Đợi bảng tải lại
+      await page.waitForSelector(".MuiTable-root", { timeout: 60000 });
     }
 
-    const scheduleData = await page.evaluate((weekIndex) => {
-      const weekElements = document.querySelectorAll(".fc-multimonth-month");
-      const targetWeek = weekElements[weekIndex];
-      if (!targetWeek) return { error: "Không tìm thấy tuần yêu cầu." };
+    const scheduleData = await page.evaluate(() => {
+      const table = document.querySelector(".MuiTable-root");
+      if (!table) return { error: "Không tìm thấy bảng lịch học." };
 
-      const events = targetWeek.querySelectorAll(".fc-daygrid-event");
+      const headers = table.querySelectorAll("thead th");
+      const days = Array.from(headers)
+        .slice(2) // Bỏ 2 cột đầu ("Ca học")
+        .map((th) => {
+          const text = th.textContent.trim();
+          const dateMatch = text.match(/\d{2}\/\d{2}\/\d{4}/);
+          return dateMatch ? dateMatch[0] : "Unknown Date";
+        });
+
       const schedule = {};
+      const rows = table.querySelectorAll("tbody tr");
 
-      events.forEach((event) => {
-        const titleEl = event.querySelector(".fc-event-title");
-        const timeEl = event.querySelector(".fc-event-time");
-        if (titleEl && timeEl) {
-          const title = titleEl.textContent.trim();
-          const time = timeEl.textContent.trim();
-          const dateEl = event.closest(".fc-daygrid-day");
-          const date = dateEl ? dateEl.getAttribute("data-date") : "Unknown Date";
+      rows.forEach((row) => {
+        const cells = row.querySelectorAll("td");
+        if (cells.length < 2) return; // Bỏ qua hàng không có dữ liệu
 
-          if (!schedule[date]) schedule[date] = [];
-          schedule[date].push({ time, title });
-        }
+        const shift = cells[0].textContent.trim(); // "Ca 1", "Ca 2", ...
+        if (shift.includes("Sáng") || shift.includes("Chiều") || shift.includes("Tối")) return; // Bỏ hàng tiêu đề ca
+
+        cells.forEach((cell, index) => {
+          if (index < 2) return; // Bỏ 2 cột đầu ("Ca học", "Ca X")
+          const day = days[index - 2];
+          if (!day || day === "Unknown Date") return;
+
+          const eventBox = cell.querySelector(".MuiBox-root.css-415vdw");
+          if (eventBox) {
+            const title = eventBox.querySelector("p.css-eu5kgx")?.textContent.trim() || "Không có tên môn";
+            const timeEl = eventBox.querySelector("p.css-189xydx:has(img[src*='clock-desk'])");
+            const time = timeEl ? timeEl.textContent.trim() : "Không rõ thời gian";
+            const roomEl = eventBox.querySelector("p.css-189xydx:has(img[src*='door-closed'])");
+            const room = roomEl ? roomEl.textContent.trim() : "Không rõ phòng";
+
+            if (!schedule[day]) schedule[day] = [];
+            schedule[day].push({ time, title, room });
+          }
+        });
       });
 
+      if (Object.keys(schedule).length === 0) {
+        return { error: nextWeek ? "Không có lịch tuần sau." : "Không có lịch tuần này." };
+      }
+
       return schedule;
-    }, currentWeekIndex);
+    });
 
     if (scheduleData.error) throw new Error(scheduleData.error);
 
@@ -135,7 +165,7 @@ async function getTuition(launchBrowser) {
         const allOption = options.find((opt) => opt.textContent.trim() === "Tất cả");
         if (allOption) allOption.click();
       });
-      await new Promise((resolve) => setTimeout(resolve, 2000)); // Thay waitForTimeout
+      await new Promise((resolve) => setTimeout(resolve, 2000));
       console.log("✅ Đã chọn 'Tất cả' trong combobox.");
     } else {
       console.log("✅ Combobox đã ở trạng thái 'Tất cả'.");
@@ -153,19 +183,19 @@ async function getTuition(launchBrowser) {
       if (!totalRow) return { error: "Không tìm thấy dòng tổng kết." };
 
       const totalCells = totalRow.querySelectorAll("td");
-      console.log(`DEBUG: Số cột trong dòng tổng: ${totalCells.length}`); // Log để debug
+      console.log(`DEBUG: Số cột trong dòng tổng: ${totalCells.length}`);
 
       // Lấy dữ liệu với kiểm tra an toàn
       const totalCredits = totalCells[4]
         ? parseInt(totalCells[4].textContent.trim()) || 0
-        : 0; // Cột "TC" (index 4)
+        : 0;
       const totalTuitionText = totalCells[5]
         ? totalCells[5].textContent.trim().replace(/[^0-9]/g, "")
-        : "0"; // Cột "Học phí" (index 5)
+        : "0";
       const totalTuition = parseInt(totalTuitionText) || 0;
       const totalDebtText = totalCells[12]
         ? totalCells[12].textContent.trim().replace(/[^0-9]/g, "")
-        : "0"; // Cột "Công nợ" (index 12)
+        : "0";
       const totalDebt = parseInt(totalDebtText) || 0;
 
       return { totalCredits, totalTuition, totalDebt };
