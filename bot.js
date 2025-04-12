@@ -45,8 +45,7 @@ bot.onText(/\/tuannay/, async (msg) => {
 
   try {
     const { schedule, week } = await getSchedule();
-    let message = "Lịch học tuần này của em bé:\n";
-    let message = "---------------------------------\n";
+    let message = "Lịch học tuần này của em bé:\n---------------------------------\n";
     const days = Object.keys(schedule);
     for (let day of days) {
       const [thu, ngay] = day.split(/(\d{2}\/\d{2}\/\d{4})/);
@@ -88,8 +87,7 @@ bot.onText(/\/tuansau/, async (msg) => {
 
   try {
     const { schedule, week } = await getSchedule(true);
-    let message = "🌙 **Lịch học tuần sau của em bé:**\n";
-    let message = "---------------------------------\n";
+    let message = "🌙 **Lịch học tuần sau của em bé:**\n---------------------------------\n";
     const days = Object.keys(schedule);
     for (let day of days) {
       const [thu, ngay] = day.split(/(\d{2}\/\d{2}\/\d{4})/);
@@ -131,8 +129,7 @@ bot.onText(/\/congno/, async (msg) => {
 
   try {
     const tuition = await getTuition();
-    let message = "Thông tin công nợ của em bé:\n";
-    let message = "---------------------------------\n";
+    let message = "Thông tin công nợ của em bé:\n---------------------------------\n";
     message += `📊 **Tổng tín chỉ:** ${tuition.totalCredits} tín chỉ\n`;
     message += `💸 **Tổng mức nộp:** ${tuition.totalAmountDue} VNĐ\n`;
     message += `⚖️ **Tổng công nợ:** ${tuition.totalDebt} VNĐ\n`;
@@ -157,8 +154,7 @@ bot.onText(/\/tiendo/, async (msg) => {
 
   try {
     const { achieved, total } = await getProgress();
-    let message = "🏁 Tiến độ học tập của em bé:\n";
-    let message = "---------------------------------\n";
+    let message = "🏁 Tiến độ học tập của em bé:\n---------------------------------\n";
     message += `📚 Tín chỉ đã đạt: ${achieved} tín chỉ\n`;
     message += `📈 Tín chỉ tổng cộng: ${total} tín chỉ\n`;
     message += `📊 Tiến độ: ${((achieved / total) * 100).toFixed(2)}%\n`;
