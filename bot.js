@@ -57,7 +57,8 @@ bot.onText(/\/tuannay/, async (msg) => {
                      `📖 **Môn học:** ${c.subject}\n` +
                      `📅 **Tiết:** ${c.periods}\n` +
                      `🕛 **Giờ bắt đầu:** ${c.startTime}\n` +
-                     `📍 **Phòng học:** ${c.room}\n\n`;
+                     `📍 **Phòng học:** ${c.room}\n\n` +
+                     `ℹ️ Hãy truy cập vào **[Portal UTH](https://portal.ut.edu.vn/dashboard)** để biết thêm thông tin chi tiết.`;
         });
       } else {
         message += "❌ Không có lịch\n";
@@ -93,7 +94,9 @@ bot.onText(/\/tuansau/, async (msg) => {
                      `📖 **Môn học:** ${c.subject}\n` +
                      `📅 **Tiết:** ${c.periods}\n` +
                      `🕛 **Giờ bắt đầu:** ${c.startTime}\n` +
-                     `📍 **Phòng học:** ${c.room}\n\n`;
+                     `📍 **Phòng học:** ${c.room}\n\n` +
+                     `ℹ️ Hãy truy cập vào **[Portal UTH](https://portal.ut.edu.vn/dashboard)** để biết thêm thông tin chi tiết.`;
+          
         });
       } else {
         message += "❌ Không có lịch\n";
@@ -116,9 +119,10 @@ bot.onText(/\/congno/, async (msg) => {
     const tuition = await getTuition();
     const message = `💰 **Thông tin công nợ của bạn:**\n------------------------------------\n` +
                     `📊 **Tổng tín chỉ:** ${tuition.totalCredits}\n` +
-                    `💸 **Tổng mức nộp:** ${tuition.totalAmountDue}\n` +
-                    `⚖️ **Tổng công nợ:** ${tuition.totalDebt}`;
-
+                    `💸 **Tổng mức nộp:** ${tuition.totalAmountDue} VNĐ\n ` +
+                    `⚖️ **Tổng công nợ:** ${tuition.totalDebt} VNĐ\n` +
+                    `ℹ️ Hãy truy cập vào **[Portal UTH](https://portal.ut.edu.vn/dashboard)** để biết thêm thông tin chi tiết.`;
+            
     bot.sendMessage(chatId, message, { parse_mode: "Markdown" });
   } catch (error) {
     bot.sendMessage(chatId, `❌ Lỗi lấy thông tin công nợ: ${error.message}`);
