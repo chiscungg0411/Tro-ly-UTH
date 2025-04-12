@@ -1,78 +1,21 @@
 require("dotenv").config();
 const TelegramBot = require("node-telegram-bot-api");
 const express = require("express");
-const puppeteerExtra = require("puppeteer-extra");
-const StealthPlugin = require("puppeteer-extra-plugin-stealth");
-const { getSchedule, getTuition } = require("./schedule");
-
-puppeteerExtra.use(StealthPlugin());
+const { getSchedule } = require("./schedule");
 
 const token = process.env.TELEGRAM_BOT_TOKEN;
+const bot = new TelegramBot(token, { polling: true });
 const app = express();
 app.use(express.json());
-const bot = new TelegramBot(token);
-
-// Xử lý SIGTERM gracefully
-process.on("SIGTERM", async () => {
-  console.log("📴 Nhận tín hiệu SIGTERM, đang dừng bot...");
-  try {
-    await bot.deleteWebHook();
-    console.log("✅ Đã xóa webhook.");
-    console.log("✅ Bot đã dừng an toàn.");
-    process.exit(0);
-  } catch (error) {
-    console.error("❌ Lỗi khi dừng bot:", error.message);
-    process.exit(1);
-  }
-});
-
-// Xử lý lỗi hệ thống
-process.on("unhandledRejection", (reason, promise) => {
-  console.error("❌ Unhandled Rejection at:", promise, "reason:", reason);
-});
-process.on("uncaughtException", (error) => {
-  console.error("❌ Uncaught Exception:", error.message);
-});
-
-// Hàm khởi động trình duyệt
-async function launchBrowser() {
-  try {
-    const browser = await puppeteerExtra.launch({
-      executablePath: process.env.CHROME_PATH || "/usr/bin/google-chrome-stable",
-      headless: "new",
-      args: [
-        "--no-sandbox",
-        "--disable-setuid-sandbox",
-        "--disable-dev-shm-usage",
-        "--disable-gpu",
-        "--disable-extensions",
-        "--disable-background-networking",
-        "--single-process",
-        "--no-zygote",
-        "--disable-accelerated-2d-canvas",
-        "--disable-features=site-per-process",
-      ],
-      defaultViewport: { width: 1280, height: 720 },
-      timeout: 120000,
-      pipe: true,
-    });
-    console.log("✅ Trình duyệt Puppeteer đã khởi động.");
-    return browser;
-  } catch (error) {
-    console.error("❌ Lỗi khởi động trình duyệt:", error.message);
-    throw new Error("Không thể khởi động trình duyệt.");
-  }
-}
 
 bot.onText(/\/start/, (msg) => {
   const chatId = msg.chat.id;
   bot.sendMessage(
     chatId,
     "👋 Xin chào! Mình là Trợ lý UTH, luôn cập nhật thông tin nhanh và tiện nhất đến cho bé Nguyệt :>.\n" +
-      "📅 /tuannay - Lấy lịch học tuần này.\n" +
-      "📆 /tuansau - Lấy lịch học tuần sau.\n" +
-      "💰 /congno - Tổng hợp tín chỉ và học phí.\n" +
-      "💡Mẹo: Nhấn nút Menu 📋 bên cạnh để chọn lệnh nhanh hơn!"
+    "📅 /tuannay - Lấy lịch học tuần này.\n" +
+    "📆 /tuansau - Lấy lịch học tuần sau.\n" +
+    "💡Mẹo: Nhấn nút Menu 📋 bên cạnh để chọn lệnh nhanh hơn!"
   );
 });
 
@@ -81,26 +24,33 @@ bot.onText(/\/tuannay/, async (msg) => {
   bot.sendMessage(chatId, "📅 Đang lấy lịch học tuần này, vui lòng chờ trong giây lát... ⌛");
 
   try {
-    const schedule = await getSchedule(launchBrowser, false);
-    let message = "📅 **Lịch học tuần này:**\n------------------------------------\n";
-    let hasSchedule = false;
+    const { schedule, week } = await getSchedule();
+    let message = `📅 **Lịch học tuần này của bạn:**\n------------------------------------\n`;
 
-    for (const [date, events] of Object.entries(schedule)) {
-      hasSchedule = true;
-      message += `📌 **${date}**:\n`;
-      events.forEach((event) => {
-        message += `   ⏰ ${event.time}: ${event.title} (${event.room})\n`;
-      });
-      message += "\n";
-    }
-
-    if (!hasSchedule) {
-      message = "📅 Tuần này không có lịch học.";
-    }
+    const days = Object.keys(schedule);
+    days.forEach((day, index) => {
+      const [thu, ngay] = day.split(/(\d{2}\/\d{2}\/\d{4})/);
+      const formattedDay = `${thu} - ${ngay}`.trim();
+      
+      const classes = schedule[day];
+      message += `⭐ **${formattedDay}:**\n`;
+      if (classes.length) {
+        classes.forEach((c) => {
+          message += `⏰ **${c.shift}**\n` +
+                     `📖 **Môn học:** ${c.subject}\n` +
+                     `📅 **Tiết:** ${c.periods}\n` +
+                     `🕛 **Giờ bắt đầu:** ${c.startTime}\n` +
+                     `📍 **Phòng học:** ${c.room}\n\n`;
+        });
+      } else {
+        message += "❌ Không có lịch\n";
+      }
+      if (index < days.length - 1) message += "\n";
+    });
 
     bot.sendMessage(chatId, message, { parse_mode: "Markdown" });
   } catch (error) {
-    bot.sendMessage(chatId, `📅 Không tìm thấy lịch học tuần này: ${error.message}`);
+    bot.sendMessage(chatId, `❌ Lỗi lấy lịch học: ${error.message}`);
   }
 });
 
@@ -109,74 +59,47 @@ bot.onText(/\/tuansau/, async (msg) => {
   bot.sendMessage(chatId, "📆 Đang lấy lịch học tuần sau, vui lòng chờ trong giây lát... ⌛");
 
   try {
-    const schedule = await getSchedule(launchBrowser, true);
-    let message = "📆 **Lịch học tuần sau:**\n------------------------------------\n";
-    let hasSchedule = false;
+    const { schedule, week } = await getSchedule(true);
+    let message = `📆 **Lịch học tuần sau của bạn:**\n------------------------------------\n`;
 
-    for (const [date, events] of Object.entries(schedule)) {
-      hasSchedule = true;
-      message += `📌 **${date}**:\n`;
-      events.forEach((event) => {
-        message += `   ⏰ ${event.time}: ${event.title} (${event.room})\n`;
-      });
-      message += "\n";
-    }
-
-    if (!hasSchedule) {
-      message = "📆 Tuần sau không có lịch học.";
-    }
-
-    bot.sendMessage(chatId, message, { parse_mode: "Markdown" });
-  } catch (error) {
-    bot.sendMessage(chatId, `📆 Không tìm thấy lịch học tuần sau: ${error.message}`);
-  }
-});
-
-bot.onText(/\/congno/, async (msg) => {
-  const chatId = msg.chat.id;
-  bot.sendMessage(chatId, "💰 Đang lấy thông tin công nợ, vui lòng chờ trong giây lát... ⌛");
-
-  try {
-    const { totalCredits, totalTuition, totalDebt } = await getTuition(launchBrowser);
-    const message =
-      `💰 **Thông tin công nợ của bạn:**\n` +
-      `------------------------------------\n` +
-      `📚 **Tổng tín chỉ:** ${totalCredits}\n` +
-      `💸 **Tổng học phí:** ${totalTuition}\n` +
-      `📉 **Công nợ:** ${totalDebt}\n` +
-      `------------------------------------\n` +
-      `✅ Dữ liệu được lấy từ tab "Học phí ngành" với tùy chọn "Tất cả".`;
+    const days = Object.keys(schedule);
+    days.forEach((day, index) => {
+      const [thu, ngay] = day.split(/(\d{2}\/\d{2}\/\d{4})/);
+      const formattedDay = `${thu} - ${ngay}`.trim();
+      
+      const classes = schedule[day];
+      message += `⭐ **${formattedDay}:**\n`;
+      if (classes.length) {
+        classes.forEach((c) => {
+          message += `⏰ **${c.shift}**\n` +
+                     `📖 **Môn học:** ${c.subject}\n` +
+                     `📅 **Tiết:** ${c.periods}\n` +
+                     `🕛 **Giờ bắt đầu:** ${c.startTime}\n` +
+                     `📍 **Phòng học:** ${c.room}\n\n`;
+        });
+      } else {
+        message += "❌ Không có lịch\n";
+      }
+      if (index < days.length - 1) message += "\n";
+    });
 
     bot.sendMessage(chatId, message, { parse_mode: "Markdown" });
   } catch (error) {
-    bot.sendMessage(chatId, `❌ Lỗi lấy thông tin công nợ: ${error.message}`);
+    bot.sendMessage(chatId, `❌ Lỗi lấy lịch học: ${error.message}`);
   }
 });
 
-// Cấu hình Webhook
-const PORT = process.env.PORT || 10001;
-const webhookUrl = `https://${process.env.RENDER_EXTERNAL_HOSTNAME}/bot${token}`;
-
-// Endpoint nhận tin nhắn từ Telegram
-app.post(`/bot${token}`, (req, res) => {
-  bot.processUpdate(req.body);
-  res.sendStatus(200);
-});
-
-// Health check endpoint
 app.get("/ping", (req, res) => {
   console.log("🏓 Chatbot được đánh thức bởi cron-job.org!");
   res.status(200).send("Bot is alive!");
 });
 
-// Khởi động server và thiết lập webhook
-app.listen(PORT, async () => {
+const PORT = process.env.PORT || 10001;
+app.listen(PORT, () => {
   console.log(`Server chạy trên port ${PORT}`);
-  try {
-    await bot.setWebHook(webhookUrl);
-    console.log(`✅ Webhook được thiết lập: ${webhookUrl}`);
-  } catch (error) {
-    console.error("❌ Lỗi thiết lập webhook:", error.message);
-  }
-  console.log("🤖 Bot Telegram (Webhook) đang hoạt động...");
+  console.log("🤖 Bot Telegram đang hoạt động...");
+});
+
+bot.on("polling_error", (error) => {
+  console.error("❌ Polling error:", error.message);
 });
