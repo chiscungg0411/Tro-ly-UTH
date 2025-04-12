@@ -1,7 +1,7 @@
 require("dotenv").config();
 const TelegramBot = require("node-telegram-bot-api");
 const express = require("express");
-const { getSchedule, getTuition, getProgress } = require("./schedule");
+const { getSchedule, getTuition } = require("./schedule");
 
 const token = process.env.TELEGRAM_BOT_TOKEN;
 const bot = new TelegramBot(token); // Không cần polling nữa
@@ -15,7 +15,7 @@ app.post(`/bot${token}`, (req, res) => {
 });
 
 // Thiết lập webhook khi server khởi động
-const webhookUrl = process.env.WEBHOOK_URL || `[invalid url, do not cite]
+const webhookUrl = process.env.WEBHOOK_URL || `https://your-domain.com/bot${token}`;
 bot.setWebHook(webhookUrl).then(() => {
   console.log(`✅ Webhook được thiết lập tại: ${webhookUrl}`);
 }).catch((error) => {
@@ -31,7 +31,6 @@ bot.onText(/\/start/, (msg) => {
     "📅 /tuannay - Lấy lịch học tuần này.\n" +
     "📆 /tuansau - Lấy lịch học tuần sau.\n" +
     "💰 /congno - Lấy thông tin công nợ.\n" +
-    "🏁 /tiendo - Lấy tiến độ học tập.\n" +
     "💡Mẹo: Nhấn nút Menu 📋 bên cạnh để chọn lệnh nhanh hơn!"
   );
 });
@@ -123,24 +122,6 @@ bot.onText(/\/congno/, async (msg) => {
     bot.sendMessage(chatId, message, { parse_mode: "Markdown" });
   } catch (error) {
     bot.sendMessage(chatId, `❌ Lỗi lấy thông tin công nợ: ${error.message}`);
-  }
-});
-
-// Lệnh /tiendo
-bot.onText(/\/tiendo/, async (msg) => {
-  const chatId = msg.chat.id;
-  bot.sendMessage(chatId, "🏁 Đang lấy tiến độ học tập, vui lòng chờ trong giây lát... ⌛");
-
-  try {
-    const { achieved, total } = await getProgress();
-    const message = `🏁 **Tiến độ học tập của bạn:**\n------------------------------------\n` +
-                    `📚 **Tín chỉ đã đạt:** ${achieved}\n` +
-                    `📈 **Tín chỉ tổng cộng:** ${total}\n` +
-                    `📊 **Tiến độ:** ${((achieved / total) * 100).toFixed(2)}%`;
-
-    bot.sendMessage(chatId, message, { parse_mode: "Markdown" });
-  } catch (error) {
-    bot.sendMessage(chatId, `❌ Lỗi lấy tiến độ học tập: ${error.message}`);
   }
 });
 
