@@ -27,11 +27,13 @@ bot.onText(/\/start/, (msg) => {
   const chatId = msg.chat.id;
   bot.sendMessage(
     chatId,
-    "👋 Hello bé Nguyệt ♑! Mình là Trợ lý 𝗨𝗧𝗛, được tạo ra bởi @𝘃𝗼𝗰𝗵𝗶𝗰𝘂𝗼𝗻𝗴_ (Chí Cường Handsome). Luôn cập nhật thông tin nhanh và tiện nhất đến cho cậu 🥰\n" +
+    "👋 Hello bé Nguyệt ♑! Mình là Trợ lý 𝗨𝗧𝗛, được tạo ra bởi @𝘃𝗼𝗰𝗵𝗶𝗰𝘂𝗼𝗻𝗴_. Luôn cập nhật thông tin nhanh và tiện nhất đến cho cậu 🥰\n" +
+    "------------------------------------\n" +
     "⭐ /𝘁𝘂𝗮𝗻𝗻𝗮𝘆 - Lấy lịch học tuần này.\n" +
     "🌙 /𝘁𝘂𝗮𝗻𝘀𝗮𝘂 - Lấy lịch học tuần sau.\n" +
     "💰 /𝗰𝗼𝗻𝗴𝗻𝗼 - Lấy thông tin công nợ.\n" +
-    "💡 Mẹo: Nhấn nút 𝗠𝗲𝗻𝘂 📋 bên cạnh để chọn lệnh nhanh hơn nhen em bé!!"
+    "------------------------------------\n" +
+    "💡 Mẹo: Nhấn nút ☰ 𝗠𝗲𝗻𝘂 bên cạnh để chọn lệnh nhanh hơn nhen!!"
   );
 });
 
